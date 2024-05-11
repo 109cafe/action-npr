@@ -1,0 +1,17 @@
+{
+  "name": "node-package-release-action",
+  "version": "0.0.0-PLACEHOLDER",
+  "main": "./index.js",
+  "private": true,
+  "packageManager": "pnpm@9.1.0",
+  "scripts": {
+    "build": "ncc build source/index.ts -o . -C -m --target es2020",
+    "build:watch": "ncc build source/index.ts -w --target es2020"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.10",
+    "typescript": "^5.4.5",
+    "@actions/core": "^1.10.1",
+    "@vercel/ncc": "^0.38.1"
+  }
+}
