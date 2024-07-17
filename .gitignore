@@ -14,7 +14,6 @@ node_modules/
 .eslintcache
 .changeset/pre.json
 
-dist/
 coverage/
 release/
 output/

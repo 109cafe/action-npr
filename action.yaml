@@ -1,0 +1,28 @@
+name: "Node Package Release"
+description: "Node Package Release"
+inputs:
+  name:
+    description: "Package name"
+    required: false
+  version:
+    description: "Package version"
+    required: false
+  tarball:
+    description: "Tarball path"
+    required: true
+  token:
+    description: "NPM token"
+    required: true
+  provenance:
+    description: "Enable provenance"
+    required: false
+    default: 'false'
+  registry:
+    description: "NPM registry"
+    required: false
+  dist-tag:
+    description: "Dist Tag"
+    required: false
+runs:
+  using: "node20"
+  main: "dist/index.js"
