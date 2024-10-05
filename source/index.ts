@@ -25,6 +25,7 @@ async function run() {
       transformManifest: createPkgJsonTransformer({ name: inputs.name, version }),
     });
   });
+  debug(`rawManifest: ${inspect(manifest, { compact: true, depth: Infinity })}`);
 
   const pkg = `${manifest.name}@${manifest.version}`;
   const version = parseVersion(manifest.version)!;
@@ -44,7 +45,7 @@ async function run() {
     inputs.distTag || version.prerelease?.[0] || publishConfig.defaultTag || "latest";
 
   await group(`Publishing ${pkg} as ${publishManifest.tag}`, async () => {
-    debug(`Manifest: ${inspect(publishManifest, { compact: true, depth: Infinity })}`);
+    debug(`publishManifest: ${inspect(publishManifest, { compact: true, depth: Infinity })}`);
     await publish(publishManifest, await readAll(tarball), publishConfig);
 
     setActionOutput({
