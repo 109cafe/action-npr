@@ -22,7 +22,7 @@ async function run() {
   const { tarball, manifest } = await group(`Repacking tarball ${tarballPath}`, async () => {
     const version = cleanVersion(inputs.version || "") || undefined;
     console.log(`version: ${version}`);
-    return modifyTarball(tarballPath, {
+    return await modifyTarball(tarballPath, {
       transformManifest: createPkgJsonTransformer({ name: inputs.name, version }),
     }).then(
       (r) => {
