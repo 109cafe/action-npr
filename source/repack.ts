@@ -1,13 +1,12 @@
 import NodeFS from "node:fs";
-import { PassThrough, pipeline as legacyPipeline } from "node:stream";
-import { callbackify, promisify } from "node:util";
+import { PassThrough } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { callbackify } from "node:util";
 import NodeZlib from "node:zlib";
 import type { Callback, Headers, Pack } from "tar-stream";
 import { extract as createExtract, pack as createPack } from "tar-stream";
 import type { CanPipe, Manifest } from "./helpers";
 import { bufferToStream, canPipe, readAll } from "./helpers";
-
-const pipeline = promisify(legacyPipeline);
 
 export interface ModifyTarballOptions {
   transformManifest?: (pkg: Manifest) => false | Manifest;
@@ -20,15 +19,16 @@ export async function modifyTarball(
   const { extract, pack, getManifest, isModified } = createRepack(opts);
 
   const source = createSource(tarball);
+  const gzip = NodeZlib.createGzip({ level: 9 });
+
+  const fin = pack.pipe(gzip);
 
   await pipeline([source, NodeZlib.createGunzip(), extract]);
   const manifest = { ...getManifest()! };
   const modified = isModified();
 
+  // FIXME should wait until `package.json` is processed
   if (modified) {
-    const gzip = NodeZlib.createGzip({ level: 9 });
-
-    const fin = pack.pipe(gzip);
     return { manifest, modified, tarball: fin };
   } else {
     return { manifest, modified, tarball: createSource(tarball) };

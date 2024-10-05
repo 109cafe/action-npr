@@ -21,19 +21,9 @@ async function run() {
 
   const { tarball, manifest } = await group(`Repacking tarball ${tarballPath}`, async () => {
     const version = cleanVersion(inputs.version || "") || undefined;
-    console.log(`version: ${version}`);
-    return await modifyTarball(tarballPath, {
+    return modifyTarball(tarballPath, {
       transformManifest: createPkgJsonTransformer({ name: inputs.name, version }),
-    }).then(
-      (r) => {
-        console.log(`r`, r);
-        return r;
-      },
-      (e) => {
-        console.error(e);
-        throw e;
-      }
-    );
+    });
   });
   debug(`rawManifest: ${inspect(manifest, { compact: true, depth: Infinity })}`);
 
