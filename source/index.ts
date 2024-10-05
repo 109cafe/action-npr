@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import { debug, error, getBooleanInput, getInput, group, notice, setOutput } from "@actions/core";
+import { debug, error, getBooleanInput, getInput, group, notice } from "@actions/core";
 import { PublishOptions, publish } from "libnpmpublish";
 import { clean as cleanVersion, parse as parseVersion } from "semver";
 import { getFirstPath, getVersionByGitState, setActionOutput } from "./action";
@@ -21,9 +21,19 @@ async function run() {
 
   const { tarball, manifest } = await group(`Repacking tarball ${tarballPath}`, async () => {
     const version = cleanVersion(inputs.version || "") || undefined;
+    console.log(`version: ${version}`);
     return modifyTarball(tarballPath, {
       transformManifest: createPkgJsonTransformer({ name: inputs.name, version }),
-    });
+    }).then(
+      (r) => {
+        console.log(`r`, r);
+        return r;
+      },
+      (e) => {
+        console.error(e);
+        throw e;
+      }
+    );
   });
   debug(`rawManifest: ${inspect(manifest, { compact: true, depth: Infinity })}`);
 
