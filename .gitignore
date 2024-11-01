@@ -1,4 +1,5 @@
 .DS_Store
+._*
 
 .pnp
 .pnp.js
@@ -26,5 +27,3 @@ log/
 **/*/typings/auto-generated
 
 modern.config.local.*
-
-playground

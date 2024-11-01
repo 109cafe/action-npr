@@ -1,0 +1,54 @@
+diff --git a/dist/helper.js b/dist/helper.js
+index 24d8caf18b74f92a84314a1dafdfcca602ec4b02..1923042549ed42be67a13276b2e8345b8cec3e45 100644
+--- a/dist/helper.js
++++ b/dist/helper.js
+@@ -34,7 +34,7 @@ export function parseTasks(dependencies, globalPrettier) {
+         if (!depPath) {
+             throw new Error(`Failed to resolve dependency: ${depName}`);
+         }
+-        const depEntry = require.resolve(depName, { paths: [cwd] });
++        const depEntry = dep.entry || require.resolve(depName, { paths: [cwd] });
+         const info = {
+             depName,
+             depPath,
+diff --git a/dist/prebundle.js b/dist/prebundle.js
+index 964b1550ac535764075e7009615391f5f2f5d633..aeb394f5c279744f4069b923791711e3f7a0be54 100644
+--- a/dist/prebundle.js
++++ b/dist/prebundle.js
+@@ -116,7 +116,7 @@ async function emitDts(task, externals) {
+         logger.error(error);
+     }
+ }
+-function emitPackageJson(task) {
++function emitPackageJson(task, raw) {
+     const packageJsonPath = join(task.depPath, 'package.json');
+     const packageJson = fs.readJsonSync(packageJsonPath, 'utf-8');
+     const outputPath = join(task.distPath, 'package.json');
+@@ -131,6 +131,9 @@ function emitPackageJson(task) {
+     if (task.depName !== pickedPackageJson.name) {
+         pickedPackageJson.name = task.depName;
+     }
++    if (raw) {
++        Object.assign(pickedPackageJson, JSON.parse(raw));
++    }
+     pickedPackageJson.types = 'index.d.ts';
+     fs.writeJSONSync(outputPath, pickedPackageJson);
+ }
+@@ -166,8 +169,6 @@ function renameDistFolder(task) {
+             }
+         }
+     }
+-    // compiled packages are always use commonjs
+-    pkgJson.type = 'commonjs';
+     fs.writeJSONSync(pkgPath, pkgJson);
+ }
+ const pkgName = process.argv[2];
+@@ -195,7 +196,7 @@ export async function prebundle(task, commonExternals = {}) {
+     emitAssets(assets, task.distPath);
+     await emitDts(task, mergedExternals);
+     emitLicense(task);
+-    emitPackageJson(task);
++    emitPackageJson(task, assets['package.json']?.source);
+     removeSourceMap(task);
+     renameDistFolder(task);
+     emitExtraFiles(task);
