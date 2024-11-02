@@ -2,6 +2,7 @@ import type { PackageJSON } from "@npm/types";
 
 export type Manifest = PackageJSON;
 export const NPM_COM_REGISTRY = "https://registry.npmjs.org";
+export const NPM_COM_WEB = "https://npmjs.com";
 
 export function buildMetaUrl(opts: { name: string; version?: string; registry?: string }) {
   const { name, version, registry = NPM_COM_REGISTRY } = opts;
@@ -12,6 +13,12 @@ export function buildMetaUrl(opts: { name: string; version?: string; registry?: 
       .join("/"),
     registry
   );
+  return u.href;
+}
+
+export function buildWebUrl(opts: { name: string; version?: string; hostname?: string }) {
+  const { name, version, hostname = NPM_COM_WEB } = opts;
+  const u = new URL(version ? `/package/${name}/v/${version}` : `/package/${name}`, hostname);
   return u.href;
 }
 
