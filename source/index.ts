@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import { debug, error, getBooleanInput, getInput, group, notice } from "@actions/core";
+import { error, getBooleanInput, getInput, group, info, notice } from "@actions/core";
 import { type PublishOptions, publish } from "libnpmpublish";
 import { clean as cleanVersion, parse as parseVersion } from "semver";
 import { getFirstPath, getVersionByGitState, setActionOutput } from "./action";
@@ -20,11 +20,14 @@ async function run() {
 
   const { tarball, manifest } = await group(`Repacking tarball ${tarballPath}`, async () => {
     const version = cleanVersion(inputs.version || "") || undefined;
-    return repack(tarballPath, {
+    const p = await repack(tarballPath, {
       manifest: createPkgJsonTransformer({ name: inputs.name, version }),
     });
+
+    info(`Repacked: ${inspect(p.manifest, { compact: true, depth: Infinity })}`);
+
+    return p;
   });
-  debug(`rawManifest: ${inspect(manifest, { compact: true, depth: Infinity })}`);
 
   const pkg = `${manifest.name}@${manifest.version}`;
   const version = parseVersion(manifest.version)!;
@@ -43,7 +46,7 @@ async function run() {
   };
 
   await group(`Publishing ${pkg} as ${tag}`, async () => {
-    debug(`publishManifest: ${inspect(publishManifest, { compact: true, depth: Infinity })}`);
+    info(`Manifest: ${inspect(publishManifest, { compact: true, depth: Infinity })}`);
     await publish(publishManifest, tarball, publishConfig);
 
     setActionOutput({

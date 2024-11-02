@@ -1,9 +1,7 @@
-import NodeFS from "node:fs";
-import { Readable } from "node:stream";
 import type { ReadableWritablePair } from "node:stream/web";
-import { type ReadableStream, TransformStream } from "node:stream/web";
+import { TransformStream } from "node:stream/web";
 import type { Manifest } from "./npm";
-import { bufferToReadable, readableToBuffer, unstreamText } from "./stream";
+import { createReadable, readableToBuffer, unstreamText } from "./stream";
 import { type GetTransformer, TarTransformStream } from "./tar";
 
 export interface RepackResult {
@@ -22,7 +20,7 @@ export function createRepack(
   const trans = TarTransformStream(
     (entry) => {
       if (entry.path === "package/package.json") {
-        return unstreamText((s) => {
+        const r = unstreamText((s) => {
           manifest = JSON.parse(s) as Manifest;
           if (typeof options?.manifest === "function") {
             const fin = options.manifest(manifest);
@@ -36,10 +34,16 @@ export function createRepack(
           }
           return s;
         });
+
+        return {
+          readable: r.readable,
+          writable: r.writable,
+          size: options?.manifest ? undefined : entry.size,
+        };
       }
       return options?.transform?.(entry);
     },
-    { pack: { gzip: { level: 9 }, portable: true } }
+    { pack: { gzip: { level: 9 }, portable: true }, keepOrder: true }
   );
   const es = new TransformStream();
   const result = trans.readable.pipeTo(es.writable).then(() => {
@@ -57,14 +61,8 @@ export async function repack(
   opts: ModifyTarballOptions = {}
 ): Promise<{ tarball: Buffer } & RepackResult> {
   const p = createRepack(opts);
-  createSource(tarball).pipeThrough(p);
+  createReadable(tarball).pipeThrough(p);
   const data = readableToBuffer(p.readable);
   const result = p.result;
   return { tarball: await data, ...(await result) };
-}
-
-function createSource(tarball: string | Buffer): ReadableStream {
-  return typeof tarball === "string"
-    ? Readable.toWeb(NodeFS.createReadStream(tarball))
-    : bufferToReadable(tarball);
 }

@@ -50,8 +50,6 @@ var x = (y) => {
 };
 var y = (x) => () => x;
 const index_js_namespaceObject = x({
-  ["debug"]: () =>
-    __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.debug,
   ["error"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.error,
   ["getBooleanInput"]: () =>
@@ -60,6 +58,8 @@ const index_js_namespaceObject = x({
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.getInput,
   ["group"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.group,
+  ["info"]: () =>
+    __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.info,
   ["notice"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.notice,
   ["setOutput"]: () =>
@@ -188,18 +188,15 @@ function getReserveFields() {
     "preferUnplugged",
   ];
 }
-const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
-  import.meta.url,
-)("node:fs");
-var external_node_fs_default = __nccwpck_require__.n(
-  external_node_fs_namespaceObject,
-);
-const external_node_stream_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
-  import.meta.url,
-)("node:stream");
 const web_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)(
   "node:stream/web",
 );
+const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
+  import.meta.url,
+)("node:fs");
+const external_node_stream_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
+  import.meta.url,
+)("node:stream");
 function toReadableStream(pass) {
   if (pass instanceof external_node_stream_namespaceObject.Readable) {
     return external_node_stream_namespaceObject.Readable.toWeb(pass);
@@ -262,6 +259,15 @@ async function readableToBuffer(readable) {
   }
   return Buffer.concat(chunks);
 }
+function createReadable(filePathOrBuffer) {
+  return typeof filePathOrBuffer === "string"
+    ? external_node_stream_namespaceObject.Readable.toWeb(
+        (0, external_node_fs_namespaceObject.createReadStream)(
+          filePathOrBuffer,
+        ),
+      )
+    : bufferToReadable(filePathOrBuffer);
+}
 var tar_index_js_x = (y) => {
   var x = {};
   __nccwpck_require__.d(x, y);
@@ -269,6 +275,8 @@ var tar_index_js_x = (y) => {
 };
 var tar_index_js_y = (x) => () => x;
 const tar_index_js_namespaceObject = tar_index_js_x({
+  ["Header"]: () =>
+    __WEBPACK_EXTERNAL_MODULE__compiled_tar_index_js_c91d939d__.Header,
   ["Pack"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_tar_index_js_c91d939d__.Pack,
   ["ReadEntry"]: () =>
@@ -276,11 +284,57 @@ const tar_index_js_namespaceObject = tar_index_js_x({
   ["Unpack"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_tar_index_js_c91d939d__.Unpack,
 });
+function PackJob(pack, keepOrder = false) {
+  let queue = Promise.resolve();
+  return function schedule(entry) {
+    if (!pack.writable) {
+      throw new Error("Pack is not on a state that can accept entries");
+    }
+    const fn =
+      "then" in entry
+        ? () =>
+            entry.then(
+              (e) => pack.add(e),
+              (e) => {
+                pack.emit("error", e);
+              },
+            )
+        : () => pack.add(entry);
+    if (keepOrder) {
+      queue = queue.then(fn);
+      return queue;
+    } else {
+      return fn();
+    }
+  };
+}
+function getEntry(_header, readable) {
+  const header = new tar_index_js_namespaceObject.Header(_header);
+  if (header.size) {
+    const entry = new tar_index_js_namespaceObject.ReadEntry(header);
+    readable.pipeTo(toWriteableStream(entry)).then(null, (e) => {
+      entry.emit("error", e);
+    });
+    return entry;
+  } else {
+    return (async () => {
+      const buf = await readableToBuffer(readable);
+      const header = new tar_index_js_namespaceObject.Header({
+        ..._header,
+        size: buf.byteLength,
+      });
+      const entry = new tar_index_js_namespaceObject.ReadEntry(header);
+      entry.end(buf);
+      return entry;
+    })();
+  }
+}
 function TarTransformStream(getTransformer, options) {
   const pack = new tar_index_js_namespaceObject.Pack(options?.pack);
+  const addEntry = PackJob(pack, options?.keepOrder);
   const extract = new tar_index_js_namespaceObject.Unpack({
     ...options?.unpack,
-    onReadEntry(entry) {
+    async onReadEntry(entry) {
       if (options?.unpack?.onReadEntry) {
         options.unpack.onReadEntry(entry);
       }
@@ -288,18 +342,17 @@ function TarTransformStream(getTransformer, options) {
         const transformer = getTransformer?.(entry);
         if (transformer) {
           const readable = toReadableStream(entry).pipeThrough(transformer);
-          const _entry = new tar_index_js_namespaceObject.ReadEntry(
-            entry.header,
-          );
-          pack.add(_entry);
-          readable.pipeTo(toWriteableStream(_entry)).then(null, (e) => {
-            r.writable.abort(e);
-          });
+          const _header = {
+            ...entry.header,
+            type: entry.header.type,
+            size: transformer.size,
+          };
+          await addEntry(getEntry(_header, readable));
         } else {
-          pack.add(entry);
+          addEntry(entry);
         }
       } catch (e) {
-        r.writable.abort(e);
+        pack.emit("error", e);
         throw e;
       }
     },
@@ -307,18 +360,17 @@ function TarTransformStream(getTransformer, options) {
   extract.once("finish", () => {
     pack.end();
   });
-  const r = {
+  return {
     readable: toReadableStream(pack),
     writable: toWriteableStream(extract),
   };
-  return r;
 }
 function createRepack(options) {
   let manifest = null;
   const trans = TarTransformStream(
     (entry) => {
       if (entry.path === "package/package.json") {
-        return unstreamText((s) => {
+        const r = unstreamText((s) => {
           manifest = JSON.parse(s);
           if (typeof options?.manifest === "function") {
             const fin = options.manifest(manifest);
@@ -332,10 +384,15 @@ function createRepack(options) {
           }
           return s;
         });
+        return {
+          readable: r.readable,
+          writable: r.writable,
+          size: options?.manifest ? undefined : entry.size,
+        };
       }
       return options?.transform?.(entry);
     },
-    { pack: { gzip: { level: 9 }, portable: true } },
+    { pack: { gzip: { level: 9 }, portable: true }, keepOrder: true },
   );
   const es = new web_namespaceObject.TransformStream();
   const result = trans.readable.pipeTo(es.writable).then(() => ({ manifest }));
@@ -343,17 +400,10 @@ function createRepack(options) {
 }
 async function repack(tarball, opts = {}) {
   const p = createRepack(opts);
-  createSource(tarball).pipeThrough(p);
+  createReadable(tarball).pipeThrough(p);
   const data = readableToBuffer(p.readable);
   const result = p.result;
   return { tarball: await data, ...(await result) };
-}
-function createSource(tarball) {
-  return typeof tarball === "string"
-    ? external_node_stream_namespaceObject.Readable.toWeb(
-        external_node_fs_default().createReadStream(tarball),
-      )
-    : bufferToReadable(tarball);
 }
 async function run() {
   const inputs = {
@@ -378,13 +428,14 @@ async function run() {
       const version =
         (0, semver_index_js_namespaceObject.clean)(inputs.version || "") ||
         undefined;
-      return repack(tarballPath, {
+      const p = await repack(tarballPath, {
         manifest: createPkgJsonTransformer({ name: inputs.name, version }),
       });
+      (0, index_js_namespaceObject.info)(
+        `Repacked: ${(0, external_node_util_namespaceObject.inspect)(p.manifest, { compact: true, depth: Infinity })}`,
+      );
+      return p;
     },
-  );
-  (0, index_js_namespaceObject.debug)(
-    `rawManifest: ${(0, external_node_util_namespaceObject.inspect)(manifest, { compact: true, depth: Infinity })}`,
   );
   const pkg = `${manifest.name}@${manifest.version}`;
   const version = (0, semver_index_js_namespaceObject.parse)(manifest.version);
@@ -402,8 +453,8 @@ async function run() {
   await (0, index_js_namespaceObject.group)(
     `Publishing ${pkg} as ${tag}`,
     async () => {
-      (0, index_js_namespaceObject.debug)(
-        `publishManifest: ${(0, external_node_util_namespaceObject.inspect)(publishManifest, { compact: true, depth: Infinity })}`,
+      (0, index_js_namespaceObject.info)(
+        `Manifest: ${(0, external_node_util_namespaceObject.inspect)(publishManifest, { compact: true, depth: Infinity })}`,
       );
       await (0, libnpmpublish_index_js_namespaceObject.publish)(
         publishManifest,

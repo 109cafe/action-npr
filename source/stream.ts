@@ -1,3 +1,4 @@
+import { createReadStream } from "node:fs";
 import { PassThrough, Readable, Writable } from "node:stream";
 import { ReadableStream, TransformStream } from "node:stream/web";
 
@@ -69,4 +70,10 @@ export async function readableToBuffer(readable: ReadableStream) {
     chunks.push(value);
   }
   return Buffer.concat(chunks);
+}
+
+export function createReadable(filePathOrBuffer: string | Buffer): ReadableStream {
+  return typeof filePathOrBuffer === "string"
+    ? Readable.toWeb(createReadStream(filePathOrBuffer))
+    : bufferToReadable(filePathOrBuffer);
 }
