@@ -115,88 +115,17 @@ const slugify_index_js_namespaceObject = slugify_index_js_x({
       "default"
     ],
 });
-async function getFirstPath(globInput) {
-  const globber = await (0, glob_index_js_namespaceObject.create)(
-    globInput,
-    {},
-  );
-  const path = (await globber.globGenerator().next()).value;
-  const relativePath = external_node_path_default().relative(
-    process.cwd(),
-    path,
-  );
-  return relativePath.startsWith("..") ? path : relativePath;
-}
-function setActionOutput(output) {
-  for (const [key, value] of Object.entries(output)) {
-    (0, index_js_namespaceObject.setOutput)(key, value);
-  }
-}
-function getVersionByGitState() {
-  if (process.env.GITHUB_REF_TYPE === "tag") {
-    const maybeVersion = process.env.GITHUB_REF_NAME.split("@").pop();
-    return (0, semver_index_js_namespaceObject.clean)(maybeVersion);
-  }
-  const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
-  const slug = (0, slugify_index_js_namespaceObject["default"])(ref);
-  return `0.0.0-${slug.slice(0, 20)}.${process.env.GITHUB_SHA.slice(0, 8)}`;
-}
-const NPM_COM_REGISTRY = "https://registry.npmjs.org";
-function buildMetaUrl(opts) {
-  const { name, version, registry = NPM_COM_REGISTRY } = opts;
-  const u = new URL(
-    [name, version]
-      .filter(Boolean)
-      .map((c) => encodeURIComponent(c))
-      .join("/"),
-    registry,
-  );
-  return u.href;
-}
-function cleanManifest(manifest, extraReserves = []) {
-  const reserves = new Set(getReserveFields().concat(extraReserves));
-  return Object.keys(manifest)
-    .filter((key) => reserves.has(key))
-    .reduce((acc, key) => {
-      acc[key] = manifest[key];
-      return acc;
-    }, {});
-}
-function getReserveFields() {
-  return [
-    "name",
-    "version",
-    "description",
-    "keywords",
-    "homepage",
-    "bugs",
-    "license",
-    "author",
-    "contributors",
-    "funding",
-    "engines",
-    "repository",
-    "dependencies",
-    "peerDependencies",
-    "peerDependenciesMeta",
-    "optionalDependencies",
-    "os",
-    "cpu",
-    "libc",
-    "languageName",
-    "dependenciesMeta",
-    "preferUnplugged",
-  ];
-}
-const web_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)(
-  "node:stream/web",
-);
+const external_node_child_process_namespaceObject =
+  __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
 const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
   import.meta.url,
 )("node:fs");
 const external_node_stream_namespaceObject = __WEBPACK_EXTERNAL_createRequire(
   import.meta.url,
 )("node:stream");
+const web_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)(
+  "node:stream/web",
+);
 function toReadableStream(pass) {
   if (pass instanceof external_node_stream_namespaceObject.Readable) {
     return external_node_stream_namespaceObject.Readable.toWeb(pass);
@@ -267,6 +196,205 @@ function createReadable(filePathOrBuffer) {
         ),
       )
     : bufferToReadable(filePathOrBuffer);
+}
+class NonZeroExitError extends Error {
+  code;
+  constructor(code, message) {
+    super(message ?? `Process exited with code ${code}`);
+    this.code = code;
+  }
+}
+function awaitChildProcess(cp, encoding) {
+  const _encoding = encoding === undefined ? "utf8" : encoding;
+  return new Promise((resolve, reject) => {
+    const p = cp.stdout
+      ? readableToBuffer(toReadableStream(cp.stdout)).then((b) =>
+          _encoding ? b.toString(_encoding) : b,
+        )
+      : cp.stdout;
+    cp.once("error", reject);
+    cp.once("exit", (code) => {
+      if (!code) {
+        resolve(p);
+      } else {
+        reject(new NonZeroExitError(code));
+      }
+    });
+  });
+}
+function dirtyTimestampToDate(ts, ratio = 1) {
+  if (!ts) {
+    return null;
+  }
+  const d = new Date(Number(ts) * ratio);
+  if (d.getTime()) {
+    return d;
+  }
+  return null;
+}
+function toYMDHMS(date) {
+  return date
+    .toISOString()
+    .replace(/\..+$/, "")
+    .replace(/[^0-9]/g, "");
+}
+async function destructPromise(promise) {
+  try {
+    const data = await promise;
+    return [true, data];
+  } catch (e) {
+    return [false, e];
+  }
+}
+async function getCommitTime(commit = "HEAD") {
+  const s = await awaitChildProcess(
+    (0, external_node_child_process_namespaceObject.spawn)(
+      "git",
+      ["show", "-s", "--format=%ct", commit],
+      { shell: true },
+    ),
+  );
+  return dirtyTimestampToDate(s);
+}
+function parseActionInput() {
+  const inputs = {
+    name: (0, index_js_namespaceObject.getInput)("name"),
+    version: (0, index_js_namespaceObject.getInput)("version"),
+    tarball: (0, index_js_namespaceObject.getInput)("tarball", {
+      required: true,
+    }),
+    registry: (0, index_js_namespaceObject.getInput)("registry"),
+    distTag: (0, index_js_namespaceObject.getInput)("dist-tag"),
+    provenance: (0, index_js_namespaceObject.getBooleanInput)("provenance"),
+    useRepoInfo: (0, index_js_namespaceObject.getBooleanInput)("use-repo-info"),
+    token: (0, index_js_namespaceObject.getInput)("token", { required: true }),
+  };
+  return inputs;
+}
+async function getFirstPath(globInput) {
+  const globber = await (0, glob_index_js_namespaceObject.create)(
+    globInput,
+    {},
+  );
+  const path = (await globber.globGenerator().next()).value;
+  const relativePath = external_node_path_default().relative(
+    process.cwd(),
+    path,
+  );
+  return relativePath.startsWith("..") ? path : relativePath;
+}
+function setActionOutput(output) {
+  for (const [key, value] of Object.entries(output)) {
+    (0, index_js_namespaceObject.setOutput)(key, value);
+  }
+}
+async function getIncrementalVersionPart() {
+  if (process.env.GITHUB_RUN_ID) {
+    return process.env.GITHUB_RUN_ID;
+  } else {
+    const [ok, time] = await destructPromise(
+      getCommitTime(process.env.GITHUB_SHA ?? "HEAD"),
+    );
+    if (ok && time) {
+      return toYMDHMS(time);
+    }
+  }
+}
+async function getVersionByGitState() {
+  if (process.env.GITHUB_REF_TYPE === "tag") {
+    const maybeVersion = process.env.GITHUB_REF_NAME.split("@").pop();
+    return (0, semver_index_js_namespaceObject.clean)(maybeVersion);
+  }
+  const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
+  const slug = (0, slugify_index_js_namespaceObject["default"])(ref);
+  const incremental =
+    (await getIncrementalVersionPart()) || toYMDHMS(new Date());
+  const ver = `0.0.0-${slug.slice(0, 20)}.${incremental}`;
+  if (process.env.GITHUB_SHA) {
+    return `${ver}+${process.env.GITHUB_SHA.slice(0, 8)}`;
+  } else {
+    return ver;
+  }
+}
+function addRepoInfoToManifest(manifest) {
+  const gh = getGithubRepoInfo();
+  if (!manifest.repository) {
+    manifest.repository = { type: "git", url: gh.gitRepo };
+  } else if (typeof manifest.repository !== "string") {
+    if (!manifest.repository.url) {
+      manifest.repository.url = gh.gitRepo;
+      manifest.repository.type = "git";
+    }
+  }
+  if (!manifest.homepage) {
+    manifest.homepage = gh.homepage;
+  }
+  if (!manifest.bugs) {
+    manifest.bugs = gh.bugs;
+  } else if (typeof manifest.bugs !== "string") {
+    if (!manifest.bugs.url) {
+      manifest.bugs.url = gh.bugs;
+    }
+  }
+  if (!manifest.gitHead) {
+    manifest.gitHead = process.env.GITHUB_SHA;
+  }
+}
+function getGithubRepoInfo() {
+  const server = process.env.GITHUB_SERVER_URL || "https://github.com";
+  const homepageUrl = new URL(process.env.GITHUB_REPOSITORY, server);
+  return {
+    homepage: homepageUrl.href,
+    gitRepo: `git+${homepageUrl.href}.git`,
+    bugs: `${homepageUrl.href}/issues`,
+  };
+}
+const NPM_COM_REGISTRY = "https://registry.npmjs.org";
+function buildMetaUrl(opts) {
+  const { name, version, registry = NPM_COM_REGISTRY } = opts;
+  const u = new URL(
+    [name, version]
+      .filter(Boolean)
+      .map((c) => encodeURIComponent(c))
+      .join("/"),
+    registry,
+  );
+  return u.href;
+}
+function cleanManifest(manifest, extraReserves = []) {
+  const reserves = new Set(getReserveFields().concat(extraReserves));
+  return Object.keys(manifest)
+    .filter((key) => reserves.has(key))
+    .reduce((acc, key) => {
+      acc[key] = manifest[key];
+      return acc;
+    }, {});
+}
+function getReserveFields() {
+  return [
+    "name",
+    "version",
+    "description",
+    "keywords",
+    "homepage",
+    "bugs",
+    "license",
+    "author",
+    "contributors",
+    "funding",
+    "engines",
+    "repository",
+    "dependencies",
+    "peerDependencies",
+    "peerDependenciesMeta",
+    "optionalDependencies",
+    "os",
+    "cpu",
+    "libc",
+    "languageName",
+    "dependenciesMeta",
+    "preferUnplugged",
+  ];
 }
 var tar_index_js_x = (y) => {
   var x = {};
@@ -406,28 +534,15 @@ async function repack(tarball, opts = {}) {
   return { tarball: await data, ...(await result) };
 }
 async function run() {
-  const inputs = {
-    name: (0, index_js_namespaceObject.getInput)("name"),
-    version:
-      (0, index_js_namespaceObject.getInput)("version") ||
-      getVersionByGitState(),
-    tarball: (0, index_js_namespaceObject.getInput)("tarball", {
-      required: true,
-    }),
-    registry: (0, index_js_namespaceObject.getInput)("registry"),
-    distTag: (0, index_js_namespaceObject.getInput)("dist-tag"),
-    provenance: (0, index_js_namespaceObject.getBooleanInput)("provenance"),
-  };
-  const token = (0, index_js_namespaceObject.getInput)("token", {
-    required: true,
-  });
+  const { token, ...inputs } = parseActionInput();
   const tarballPath = await getFirstPath(inputs.tarball);
   const { tarball, manifest } = await (0, index_js_namespaceObject.group)(
     `Repacking tarball ${tarballPath}`,
     async () => {
       const version =
-        (0, semver_index_js_namespaceObject.clean)(inputs.version || "") ||
-        undefined;
+        (0, semver_index_js_namespaceObject.clean)(
+          inputs.version || (await getVersionByGitState()) || "",
+        ) || undefined;
       const p = await repack(tarballPath, {
         manifest: createPkgJsonTransformer({ name: inputs.name, version }),
       });
@@ -442,6 +557,9 @@ async function run() {
   const { publishConfig: _publishConfig } = manifest;
   const publishManifest = cleanManifest(manifest);
   const tag = `${inputs.distTag || version.prerelease?.[0] || _publishConfig?.tag || _publishConfig?.defaultTag || "latest"}`;
+  if (inputs.useRepoInfo) {
+    addRepoInfoToManifest(publishManifest);
+  }
   const publishConfig = {
     ..._publishConfig,
     defaultTag: tag,

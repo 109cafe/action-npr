@@ -1,25 +1,24 @@
 import { inspect } from "node:util";
-import { error, getBooleanInput, getInput, group, info, notice } from "@actions/core";
+import { error, group, info, notice } from "@actions/core";
 import { type PublishOptions, publish } from "libnpmpublish";
 import { clean as cleanVersion, parse as parseVersion } from "semver";
-import { getFirstPath, getVersionByGitState, setActionOutput } from "./action";
+import {
+  addRepoInfoToManifest,
+  getFirstPath,
+  getVersionByGitState,
+  parseActionInput,
+  setActionOutput,
+} from "./action";
 import { type Manifest, NPM_COM_REGISTRY, buildMetaUrl, cleanManifest } from "./npm";
 import { repack } from "./repack";
 
 async function run() {
-  const inputs = {
-    name: getInput("name"),
-    version: getInput("version") || getVersionByGitState(),
-    tarball: getInput("tarball", { required: true }),
-    registry: getInput("registry"),
-    distTag: getInput("dist-tag"),
-    provenance: getBooleanInput("provenance"),
-  };
-  const token = getInput("token", { required: true });
+  const { token, ...inputs } = parseActionInput();
   const tarballPath = await getFirstPath(inputs.tarball);
 
   const { tarball, manifest } = await group(`Repacking tarball ${tarballPath}`, async () => {
-    const version = cleanVersion(inputs.version || "") || undefined;
+    const version =
+      cleanVersion(inputs.version || (await getVersionByGitState()) || "") || undefined;
     const p = await repack(tarballPath, {
       manifest: createPkgJsonTransformer({ name: inputs.name, version }),
     });
@@ -35,6 +34,9 @@ async function run() {
   const { publishConfig: _publishConfig } = manifest;
   const publishManifest = cleanManifest(manifest);
   const tag = `${inputs.distTag || version.prerelease?.[0] || _publishConfig?.tag || _publishConfig?.defaultTag || "latest"}`;
+  if (inputs.useRepoInfo) {
+    addRepoInfoToManifest(publishManifest);
+  }
 
   const publishConfig: PublishOptions = {
     ..._publishConfig,
