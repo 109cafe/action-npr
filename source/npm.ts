@@ -1,5 +1,6 @@
-import { Manifest } from "./helpers";
+import type { PackageJson } from "@npm/types";
 
+export type Manifest = PackageJson;
 export const NPM_COM_REGISTRY = "https://registry.npmjs.org";
 
 export function buildMetaUrl(opts: { name: string; version?: string; registry?: string }) {
@@ -14,11 +15,12 @@ export function buildMetaUrl(opts: { name: string; version?: string; registry?: 
   return u.href;
 }
 
-export function cleanManifest(manifest: Manifest, extraReserves: string[] = []) {
+export function cleanManifest(manifest: Manifest, extraReserves: string[] = []): Manifest {
   const reserves = new Set(getReserveFields().concat(extraReserves));
   return Object.keys(manifest)
     .filter((key) => reserves.has(key))
     .reduce((acc, key) => {
+      // @ts-expect-error
       acc[key] = manifest[key];
       return acc;
     }, {} as Manifest);

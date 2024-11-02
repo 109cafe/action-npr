@@ -1,8 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
-  "files": {
-    "ignore": ["dist/**"]
-  },
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -14,9 +11,12 @@
       "trailingCommas": "es5"
     }
   },
+  "files": {
+    "ignore": ["dist/**", "compiled/**"]
+  },
   "overrides": [
     {
-      "include": [".vscode/*.json", "**/tsconfig.json", "**/tsconfig.*.json"],
+      "include": [".vscode/*.json", "**/tsconfig.json"],
       "json": { "parser": { "allowComments": true, "allowTrailingCommas": true } }
     }
   ],
@@ -35,21 +35,27 @@
     "rules": {
       "correctness": {
         "useExhaustiveDependencies": "off",
-        "noEmptyPattern": "off"
+        "noEmptyPattern": "off",
+        "noUnusedImports": {}
       },
       "a11y": {
-        "useKeyWithClickEvents": "off"
+        "useKeyWithClickEvents": "off",
+        "useSemanticElements": "off"
       },
       "style": {
-        "all": false
+        "recommended": false,
+        "useImportType": {},
+        "useExportType": {}
       },
       "complexity": {
         "noForEach": "warn",
-        "noUselessSwitchCase": "off"
+        "noUselessSwitchCase": "off",
+        "noBannedTypes": "off"
       },
       "suspicious": {
         "noExplicitAny": "warn",
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "warn",
+        "noEmptyInterface": "off"
       }
     }
   }

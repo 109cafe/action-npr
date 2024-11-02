@@ -1,102 +1,68 @@
-import NodeFS from "node:fs";
-import { PassThrough } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import { callbackify } from "node:util";
-import NodeZlib from "node:zlib";
-import type { Callback, Headers, Pack } from "tar-stream";
-import { extract as createExtract, pack as createPack } from "tar-stream";
-import type { CanPipe, Manifest } from "./helpers";
-import { bufferToStream, canPipe, readAll } from "./helpers";
+import type { ReadableWritablePair } from "node:stream/web";
+import { TransformStream } from "node:stream/web";
+import type { Manifest } from "./npm";
+import { createReadable, readableToBuffer, unstreamText } from "./stream";
+import { type GetTransformer, TarTransformStream } from "./tar";
+
+export interface RepackResult {
+  manifest: Manifest;
+}
 
 export interface ModifyTarballOptions {
-  transformManifest?: (pkg: Manifest) => false | Manifest;
+  manifest?: Manifest | ((pkg: Manifest) => false | Manifest);
+  transform?: GetTransformer;
 }
 
-export async function modifyTarball(
+export function createRepack(
+  options?: ModifyTarballOptions
+): ReadableWritablePair & { result: Promise<RepackResult> } {
+  let manifest: Manifest | null = null;
+  const trans = TarTransformStream(
+    (entry) => {
+      if (entry.path === "package/package.json") {
+        const r = unstreamText((s) => {
+          manifest = JSON.parse(s) as Manifest;
+          if (typeof options?.manifest === "function") {
+            const fin = options.manifest(manifest);
+            if (fin) {
+              manifest = fin;
+              return JSON.stringify(fin, null, 2);
+            }
+          } else if (options?.manifest) {
+            manifest = options.manifest;
+            return JSON.stringify(options.manifest, null, 2);
+          }
+          return s;
+        });
+
+        return {
+          readable: r.readable,
+          writable: r.writable,
+          size: options?.manifest ? undefined : entry.size,
+        };
+      }
+      return options?.transform?.(entry);
+    },
+    { pack: { gzip: { level: 9 }, portable: true }, keepOrder: true }
+  );
+  const es = new TransformStream();
+  const result = trans.readable.pipeTo(es.writable).then(() => {
+    return { manifest: manifest as Manifest };
+  });
+  return {
+    writable: trans.writable,
+    readable: es.readable,
+    result,
+  };
+}
+
+export async function repack(
   tarball: string | Buffer,
   opts: ModifyTarballOptions = {}
-): Promise<{ tarball: NodeJS.ReadableStream; manifest: Manifest; modified: boolean }> {
-  const { extract, pack, getManifest, isModified } = createRepack(opts);
-
-  const source = createSource(tarball);
-  const gzip = NodeZlib.createGzip({ level: 9 });
-
-  const fin = pack.pipe(gzip);
-
-  await pipeline([source, NodeZlib.createGunzip(), extract]);
-  const manifest = { ...getManifest()! };
-  const modified = isModified();
-
-  // FIXME should wait until `package.json` is processed
-  if (modified) {
-    return { manifest, modified, tarball: fin };
-  } else {
-    return { manifest, modified, tarball: createSource(tarball) };
-  }
-}
-
-export function createRepack(opts: ModifyTarballOptions = {}) {
-  const extract = createExtract({});
-  const pack = createPack();
-
-  const addEntry = getAddEntry(pack);
-
-  let manifest: Manifest | undefined = undefined;
-  let modified = false;
-
-  extract.on(
-    "entry",
-    callbackify(async (header: Headers, stream: PassThrough) => {
-      if (header.name === "package/package.json") {
-        const buf = await readAll(stream);
-
-        if (opts.transformManifest) {
-          const newManifest = opts.transformManifest(JSON.parse(buf.toString()) as Manifest);
-          if (newManifest) {
-            manifest = newManifest;
-            modified = true;
-            await addEntry(header, Buffer.from(JSON.stringify(manifest, null, 2)));
-            return;
-          }
-        }
-
-        // in case transformManifest modifies the manifest in place
-        manifest = JSON.parse(buf.toString());
-        await addEntry(header, buf);
-        return;
-      }
-      await addEntry(header, stream);
-    })
-  );
-
-  extract.on("finish", () => {
-    pack.finalize();
-  });
-  function getManifest() {
-    return manifest;
-  }
-  function isModified() {
-    return modified;
-  }
-  return { extract, pack, getManifest, isModified };
-}
-
-function createSource(tarball: string | Buffer): NodeJS.ReadableStream {
-  return typeof tarball === "string" ? NodeFS.createReadStream(tarball) : bufferToStream(tarball);
-}
-
-function getAddEntry(p: Pack) {
-  return (headers: Headers, buffer: string | Buffer | CanPipe): PromiseLike<void> => {
-    return new Promise<void>((resolve, reject) => {
-      const callback: Callback = (err) => {
-        return err ? reject(err) : resolve();
-      };
-      if (canPipe<CanPipe>(buffer)) {
-        const next = p.entry(headers, callback);
-        buffer.pipe(next);
-      } else {
-        p.entry(headers, buffer, callback);
-      }
-    });
-  };
+): Promise<{ tarball: Buffer } & RepackResult> {
+  const p = createRepack(opts);
+  createReadable(tarball).pipeThrough(p);
+  const data = readableToBuffer(p.readable);
+  const result = p.result;
+  return { tarball: await data, ...(await result) };
 }
