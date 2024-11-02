@@ -290,7 +290,7 @@ function setActionOutput(output) {
 }
 async function getIncrementalVersionPart() {
   if (process.env.GITHUB_RUN_ID) {
-    return process.env.GITHUB_RUN_ID;
+    return Number(process.env.GITHUB_RUN_ID) - 11643703879;
   } else {
     const [ok, time] = await destructPromise(
       getCommitTime(process.env.GITHUB_SHA ?? "HEAD"),
@@ -374,6 +374,7 @@ function getReserveFields() {
   return [
     "name",
     "version",
+    "bin",
     "description",
     "keywords",
     "homepage",
@@ -564,7 +565,7 @@ async function run() {
     ..._publishConfig,
     defaultTag: tag,
     registry: inputs.registry || _publishConfig?.registry || NPM_COM_REGISTRY,
-    npmVersion: "action-npr/v1 (https://github.com/109cafe/action-npr)",
+    npmVersion: `action-npr/v1 (+https://github.com/${process.env.GITHUB_ACTION_REPOSITORY || "109cafe/action-npr"})`,
     provenance: inputs.provenance,
     forceAuth: { token },
   };

@@ -42,7 +42,7 @@ async function run() {
     ..._publishConfig,
     defaultTag: tag,
     registry: inputs.registry || (_publishConfig?.registry as string) || NPM_COM_REGISTRY,
-    npmVersion: "action-npr/v1 (https://github.com/109cafe/action-npr)",
+    npmVersion: `action-npr/v1 (+https://github.com/${process.env.GITHUB_ACTION_REPOSITORY || "109cafe/action-npr"})`,
     provenance: inputs.provenance,
     forceAuth: { token },
   };

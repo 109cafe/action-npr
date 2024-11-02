@@ -29,6 +29,7 @@ export function getReserveFields() {
   return [
     "name",
     "version",
+    "bin",
     "description",
     "keywords",
     "homepage",

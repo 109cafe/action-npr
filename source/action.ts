@@ -52,7 +52,8 @@ export function setActionOutput(output: ActionOutput) {
 }
 async function getIncrementalVersionPart() {
   if (process.env.GITHUB_RUN_ID) {
-    return process.env.GITHUB_RUN_ID;
+    // to make it smaller; the magic number is the first run id of this action
+    return Number(process.env.GITHUB_RUN_ID) - 11643703879;
   } else {
     const [ok, time] = await destructPromise(getCommitTime(process.env.GITHUB_SHA ?? "HEAD"));
     if (ok && time) {
