@@ -60,10 +60,10 @@ const index_js_namespaceObject = x({
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.group,
   ["info"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.info,
-  ["notice"]: () =>
-    __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.notice,
   ["setOutput"]: () =>
     __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.setOutput,
+  ["summary"]: () =>
+    __WEBPACK_EXTERNAL_MODULE__compiled_actions_core_index_js_9bb3e6a1__.summary,
 });
 var index_js_x = (y) => {
   var x = {};
@@ -350,6 +350,7 @@ function getGithubRepoInfo() {
   };
 }
 const NPM_COM_REGISTRY = "https://registry.npmjs.org";
+const NPM_COM_WEB = "https://npmjs.com";
 function buildMetaUrl(opts) {
   const { name, version, registry = NPM_COM_REGISTRY } = opts;
   const u = new URL(
@@ -358,6 +359,14 @@ function buildMetaUrl(opts) {
       .map((c) => encodeURIComponent(c))
       .join("/"),
     registry,
+  );
+  return u.href;
+}
+function buildWebUrl(opts) {
+  const { name, version, hostname = NPM_COM_WEB } = opts;
+  const u = new URL(
+    version ? `/package/${name}/v/${version}` : `/package/${name}`,
+    hostname,
   );
   return u.href;
 }
@@ -585,10 +594,26 @@ async function run() {
         version: publishManifest.version,
         tag,
       });
-      (0, index_js_namespaceObject.notice)(
-        `Package: ${pkg}\nDist Tag: ${tag}\nMeta: ${buildMetaUrl({ name: publishManifest.name, version: publishManifest.version, registry: publishConfig.registry })}`,
-        { title: `${pkg} published` },
+      index_js_namespaceObject.summary.addHeading(`${pkg} published`);
+      const metaUrl = buildMetaUrl({
+        name: publishManifest.name,
+        version: publishManifest.version,
+        registry: publishConfig.registry,
+      });
+      const webUrl = buildWebUrl({
+        name: publishManifest.name,
+        version: publishManifest.version,
+      });
+      index_js_namespaceObject.summary.addRaw(
+        `<p><b>Package: </b><code>${pkg}</code></p>\n<p><b>Dist Tag: </b><code>${tag}</code></p>\n<p><b>Meta Url: </b><a href="${metaUrl}" target="_blank">${metaUrl}</a></p>\n<p><b>Web Url: </b><a href="${webUrl}" target="_blank">${webUrl}</a></p>\n`,
       );
+      index_js_namespaceObject.summary.addCodeBlock(`npm i ${pkg}`, "shell");
+      index_js_namespaceObject.summary.addCodeBlock(`pnpm add ${pkg}`, "shell");
+      index_js_namespaceObject.summary.addCodeBlock(`yarn add ${pkg}`, "shell");
+      index_js_namespaceObject.summary.addCodeBlock(`bun add ${pkg}`, "shell");
+      try {
+        await index_js_namespaceObject.summary.write({});
+      } catch {}
     },
   );
 }

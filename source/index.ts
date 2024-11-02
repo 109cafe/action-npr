@@ -1,5 +1,5 @@
 import { inspect } from "node:util";
-import { error, group, info, notice } from "@actions/core";
+import { error, group, info, summary } from "@actions/core";
 import { type PublishOptions, publish } from "libnpmpublish";
 import { clean as cleanVersion, parse as parseVersion } from "semver";
 import {
@@ -9,7 +9,7 @@ import {
   parseActionInput,
   setActionOutput,
 } from "./action";
-import { type Manifest, NPM_COM_REGISTRY, buildMetaUrl, cleanManifest } from "./npm";
+import { type Manifest, NPM_COM_REGISTRY, buildMetaUrl, buildWebUrl, cleanManifest } from "./npm";
 import { repack } from "./repack";
 
 async function run() {
@@ -56,12 +56,30 @@ async function run() {
       version: publishManifest.version,
       tag,
     });
-    notice(
-      `Package: ${pkg}
-Dist Tag: ${tag}
-Meta: ${buildMetaUrl({ name: publishManifest.name, version: publishManifest.version, registry: publishConfig.registry })}`,
-      { title: `${pkg} published` }
-    );
+
+    summary.addHeading(`${pkg} published`);
+
+    const metaUrl = buildMetaUrl({
+      name: publishManifest.name,
+      version: publishManifest.version,
+      registry: publishConfig.registry,
+    });
+    const webUrl = buildWebUrl({
+      name: publishManifest.name,
+      version: publishManifest.version,
+    });
+    summary.addRaw(`<p><b>Package: </b><code>${pkg}</code></p>
+<p><b>Dist Tag: </b><code>${tag}</code></p>
+<p><b>Meta Url: </b><a href="${metaUrl}" target="_blank">${metaUrl}</a></p>
+<p><b>Web Url: </b><a href="${webUrl}" target="_blank">${webUrl}</a></p>
+`);
+    summary.addCodeBlock(`npm i ${pkg}`, "shell");
+    summary.addCodeBlock(`pnpm add ${pkg}`, "shell");
+    summary.addCodeBlock(`yarn add ${pkg}`, "shell");
+    summary.addCodeBlock(`bun add ${pkg}`, "shell");
+    try {
+      await summary.write({});
+    } catch {}
   });
 }
 
