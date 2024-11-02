@@ -664,48 +664,6 @@
       };
       module.exports = withTempDir;
     },
-    1231: (module, __unused_webpack_exports, __nccwpck_require__) => {
-      "use strict";
-      const indentString = __nccwpck_require__(8043);
-      const cleanStack = __nccwpck_require__(7972);
-      const cleanInternalStack = (stack) =>
-        stack.replace(/\s+at .*aggregate-error\/index.js:\d+:\d+\)?/g, "");
-      class AggregateError extends Error {
-        constructor(errors) {
-          if (!Array.isArray(errors)) {
-            throw new TypeError(
-              `Expected input to be an Array, got ${typeof errors}`,
-            );
-          }
-          errors = [...errors].map((error) => {
-            if (error instanceof Error) {
-              return error;
-            }
-            if (error !== null && typeof error === "object") {
-              return Object.assign(new Error(error.message), error);
-            }
-            return new Error(error);
-          });
-          let message = errors
-            .map((error) =>
-              typeof error.stack === "string"
-                ? cleanInternalStack(cleanStack(error.stack))
-                : String(error),
-            )
-            .join("\n");
-          message = "\n" + indentString(message, 4);
-          super(message);
-          this.name = "AggregateError";
-          Object.defineProperty(this, "_errors", { value: errors });
-        }
-        *[Symbol.iterator]() {
-          for (const error of this._errors) {
-            yield error;
-          }
-        }
-      }
-      module.exports = AggregateError;
-    },
     9417: (module) => {
       "use strict";
       module.exports = balanced;
@@ -767,7 +725,7 @@
       const contentVer = __nccwpck_require__(3684)["cache-version"].content;
       const hashToSegments = __nccwpck_require__(2700);
       const path = __nccwpck_require__(1017);
-      const ssri = __nccwpck_require__(4406);
+      const ssri = __nccwpck_require__(2145);
       module.exports = contentPath;
       function contentPath(cache, integrity) {
         const sri = ssri.parse(integrity, { single: true });
@@ -786,7 +744,7 @@
       "use strict";
       const fs = __nccwpck_require__(3292);
       const fsm = __nccwpck_require__(968);
-      const ssri = __nccwpck_require__(4406);
+      const ssri = __nccwpck_require__(2145);
       const contentPath = __nccwpck_require__(3491);
       const Pipeline = __nccwpck_require__(9891);
       module.exports = read;
@@ -953,7 +911,7 @@
       const Pipeline = __nccwpck_require__(9891);
       const Flush = __nccwpck_require__(4181);
       const path = __nccwpck_require__(1017);
-      const ssri = __nccwpck_require__(4406);
+      const ssri = __nccwpck_require__(2145);
       const uniqueFilename = __nccwpck_require__(1747);
       const fsm = __nccwpck_require__(968);
       module.exports = write;
@@ -1125,13 +1083,12 @@
         __nccwpck_require__(3292);
       const { Minipass } = __nccwpck_require__(4968);
       const path = __nccwpck_require__(1017);
-      const ssri = __nccwpck_require__(4406);
+      const ssri = __nccwpck_require__(2145);
       const uniqueFilename = __nccwpck_require__(1747);
       const contentPath = __nccwpck_require__(3491);
       const hashToSegments = __nccwpck_require__(2700);
       const indexV = __nccwpck_require__(3684)["cache-version"].index;
       const { moveFile } = __nccwpck_require__(575);
-      const pMap = __nccwpck_require__(1855);
       const lsStreamConcurrency = 5;
       module.exports.NotFoundError = class NotFoundError extends Error {
         constructor(cache, key) {
@@ -1257,6 +1214,9 @@
         const stream = new Minipass({ objectMode: true });
         Promise.resolve()
           .then(async () => {
+            const { default: pMap } = await __nccwpck_require__
+              .e(689)
+              .then(__nccwpck_require__.bind(__nccwpck_require__, 1689));
             const buckets = await readdirOrEmpty(indexDir);
             await pMap(
               buckets,
@@ -1769,13 +1729,12 @@
       "use strict";
       const { mkdir, readFile, rm, stat, truncate, writeFile } =
         __nccwpck_require__(3292);
-      const pMap = __nccwpck_require__(1855);
       const contentPath = __nccwpck_require__(3491);
       const fsm = __nccwpck_require__(968);
       const glob = __nccwpck_require__(8066);
       const index = __nccwpck_require__(595);
       const path = __nccwpck_require__(1017);
-      const ssri = __nccwpck_require__(4406);
+      const ssri = __nccwpck_require__(2145);
       const hasOwnProperty = (obj, key) =>
         Object.prototype.hasOwnProperty.call(obj, key);
       const verifyOpts = (opts) => ({
@@ -1835,6 +1794,9 @@
       }
       async function garbageCollect(cache, opts) {
         opts.log.silly("verify", "garbage collecting content");
+        const { default: pMap } = await __nccwpck_require__
+          .e(689)
+          .then(__nccwpck_require__.bind(__nccwpck_require__, 1689));
         const indexStream = index.lsStream(cache);
         const liveContent = new Set();
         indexStream.on("data", (entry) => {
@@ -1912,6 +1874,9 @@
       }
       async function rebuildIndex(cache, opts) {
         opts.log.silly("verify", "rebuilding index");
+        const { default: pMap } = await __nccwpck_require__
+          .e(689)
+          .then(__nccwpck_require__.bind(__nccwpck_require__, 1689));
         const entries = await index.ls(cache);
         const stats = {
           missingContent: 0,
@@ -1983,43 +1948,525 @@
         return new Date(+data);
       }
     },
-    7972: (module, __unused_webpack_exports, __nccwpck_require__) => {
+    2145: (module, __unused_webpack_exports, __nccwpck_require__) => {
       "use strict";
-      const os = __nccwpck_require__(2037);
-      const extractPathRegex = /\s+at.*(?:\(|\s)(.*)\)?/;
-      const pathRegex =
-        /^(?:(?:(?:node|(?:internal\/[\w/]*|.*node_modules\/(?:babel-polyfill|pirates)\/.*)?\w+)\.js:\d+:\d+)|native)/;
-      const homeDir = typeof os.homedir === "undefined" ? "" : os.homedir();
-      module.exports = (stack, options) => {
-        options = Object.assign({ pretty: false }, options);
-        return stack
-          .replace(/\\/g, "/")
-          .split("\n")
-          .filter((line) => {
-            const pathMatches = line.match(extractPathRegex);
-            if (pathMatches === null || !pathMatches[1]) {
-              return true;
+      const crypto = __nccwpck_require__(6113);
+      const { Minipass } = __nccwpck_require__(4968);
+      const SPEC_ALGORITHMS = ["sha512", "sha384", "sha256"];
+      const DEFAULT_ALGORITHMS = ["sha512"];
+      const BASE64_REGEX = /^[a-z0-9+/]+(?:=?=?)$/i;
+      const SRI_REGEX = /^([a-z0-9]+)-([^?]+)([?\S*]*)$/;
+      const STRICT_SRI_REGEX =
+        /^([a-z0-9]+)-([A-Za-z0-9+/=]{44,88})(\?[\x21-\x7E]*)?$/;
+      const VCHAR_REGEX = /^[\x21-\x7E]+$/;
+      const getOptString = (options) =>
+        options?.length ? `?${options.join("?")}` : "";
+      class IntegrityStream extends Minipass {
+        #emittedIntegrity;
+        #emittedSize;
+        #emittedVerified;
+        constructor(opts) {
+          super();
+          this.size = 0;
+          this.opts = opts;
+          this.#getOptions();
+          if (opts?.algorithms) {
+            this.algorithms = [...opts.algorithms];
+          } else {
+            this.algorithms = [...DEFAULT_ALGORITHMS];
+          }
+          if (
+            this.algorithm !== null &&
+            !this.algorithms.includes(this.algorithm)
+          ) {
+            this.algorithms.push(this.algorithm);
+          }
+          this.hashes = this.algorithms.map(crypto.createHash);
+        }
+        #getOptions() {
+          this.sri = this.opts?.integrity
+            ? parse(this.opts?.integrity, this.opts)
+            : null;
+          this.expectedSize = this.opts?.size;
+          if (!this.sri) {
+            this.algorithm = null;
+          } else if (this.sri.isHash) {
+            this.goodSri = true;
+            this.algorithm = this.sri.algorithm;
+          } else {
+            this.goodSri = !this.sri.isEmpty();
+            this.algorithm = this.sri.pickAlgorithm(this.opts);
+          }
+          this.digests = this.goodSri ? this.sri[this.algorithm] : null;
+          this.optString = getOptString(this.opts?.options);
+        }
+        on(ev, handler) {
+          if (ev === "size" && this.#emittedSize) {
+            return handler(this.#emittedSize);
+          }
+          if (ev === "integrity" && this.#emittedIntegrity) {
+            return handler(this.#emittedIntegrity);
+          }
+          if (ev === "verified" && this.#emittedVerified) {
+            return handler(this.#emittedVerified);
+          }
+          return super.on(ev, handler);
+        }
+        emit(ev, data) {
+          if (ev === "end") {
+            this.#onEnd();
+          }
+          return super.emit(ev, data);
+        }
+        write(data) {
+          this.size += data.length;
+          this.hashes.forEach((h) => h.update(data));
+          return super.write(data);
+        }
+        #onEnd() {
+          if (!this.goodSri) {
+            this.#getOptions();
+          }
+          const newSri = parse(
+            this.hashes
+              .map(
+                (h, i) =>
+                  `${this.algorithms[i]}-${h.digest("base64")}${this.optString}`,
+              )
+              .join(" "),
+            this.opts,
+          );
+          const match = this.goodSri && newSri.match(this.sri, this.opts);
+          if (
+            typeof this.expectedSize === "number" &&
+            this.size !== this.expectedSize
+          ) {
+            const err = new Error(
+              `stream size mismatch when checking ${this.sri}.\n  Wanted: ${this.expectedSize}\n  Found: ${this.size}`,
+            );
+            err.code = "EBADSIZE";
+            err.found = this.size;
+            err.expected = this.expectedSize;
+            err.sri = this.sri;
+            this.emit("error", err);
+          } else if (this.sri && !match) {
+            const err = new Error(
+              `${this.sri} integrity checksum failed when using ${this.algorithm}: wanted ${this.digests} but got ${newSri}. (${this.size} bytes)`,
+            );
+            err.code = "EINTEGRITY";
+            err.found = newSri;
+            err.expected = this.digests;
+            err.algorithm = this.algorithm;
+            err.sri = this.sri;
+            this.emit("error", err);
+          } else {
+            this.#emittedSize = this.size;
+            this.emit("size", this.size);
+            this.#emittedIntegrity = newSri;
+            this.emit("integrity", newSri);
+            if (match) {
+              this.#emittedVerified = match;
+              this.emit("verified", match);
             }
-            const match = pathMatches[1];
-            if (
-              match.includes(".app/Contents/Resources/electron.asar") ||
-              match.includes(".app/Contents/Resources/default_app.asar")
-            ) {
+          }
+        }
+      }
+      class Hash {
+        get isHash() {
+          return true;
+        }
+        constructor(hash, opts) {
+          const strict = opts?.strict;
+          this.source = hash.trim();
+          this.digest = "";
+          this.algorithm = "";
+          this.options = [];
+          const match = this.source.match(
+            strict ? STRICT_SRI_REGEX : SRI_REGEX,
+          );
+          if (!match) {
+            return;
+          }
+          if (strict && !SPEC_ALGORITHMS.includes(match[1])) {
+            return;
+          }
+          this.algorithm = match[1];
+          this.digest = match[2];
+          const rawOpts = match[3];
+          if (rawOpts) {
+            this.options = rawOpts.slice(1).split("?");
+          }
+        }
+        hexDigest() {
+          return (
+            this.digest && Buffer.from(this.digest, "base64").toString("hex")
+          );
+        }
+        toJSON() {
+          return this.toString();
+        }
+        match(integrity, opts) {
+          const other = parse(integrity, opts);
+          if (!other) {
+            return false;
+          }
+          if (other.isIntegrity) {
+            const algo = other.pickAlgorithm(opts, [this.algorithm]);
+            if (!algo) {
               return false;
             }
-            return !pathRegex.test(match);
-          })
-          .filter((line) => line.trim() !== "")
-          .map((line) => {
-            if (options.pretty) {
-              return line.replace(extractPathRegex, (m, p1) =>
-                m.replace(p1, p1.replace(homeDir, "~")),
-              );
+            const foundHash = other[algo].find(
+              (hash) => hash.digest === this.digest,
+            );
+            if (foundHash) {
+              return foundHash;
             }
-            return line;
-          })
-          .join("\n");
-      };
+            return false;
+          }
+          return other.digest === this.digest ? other : false;
+        }
+        toString(opts) {
+          if (opts?.strict) {
+            if (
+              !(
+                SPEC_ALGORITHMS.includes(this.algorithm) &&
+                this.digest.match(BASE64_REGEX) &&
+                this.options.every((opt) => opt.match(VCHAR_REGEX))
+              )
+            ) {
+              return "";
+            }
+          }
+          return `${this.algorithm}-${this.digest}${getOptString(this.options)}`;
+        }
+      }
+      function integrityHashToString(toString, sep, opts, hashes) {
+        const toStringIsNotEmpty = toString !== "";
+        let shouldAddFirstSep = false;
+        let complement = "";
+        const lastIndex = hashes.length - 1;
+        for (let i = 0; i < lastIndex; i++) {
+          const hashString = Hash.prototype.toString.call(hashes[i], opts);
+          if (hashString) {
+            shouldAddFirstSep = true;
+            complement += hashString;
+            complement += sep;
+          }
+        }
+        const finalHashString = Hash.prototype.toString.call(
+          hashes[lastIndex],
+          opts,
+        );
+        if (finalHashString) {
+          shouldAddFirstSep = true;
+          complement += finalHashString;
+        }
+        if (toStringIsNotEmpty && shouldAddFirstSep) {
+          return toString + sep + complement;
+        }
+        return toString + complement;
+      }
+      class Integrity {
+        get isIntegrity() {
+          return true;
+        }
+        toJSON() {
+          return this.toString();
+        }
+        isEmpty() {
+          return Object.keys(this).length === 0;
+        }
+        toString(opts) {
+          let sep = opts?.sep || " ";
+          let toString = "";
+          if (opts?.strict) {
+            sep = sep.replace(/\S+/g, " ");
+            for (const hash of SPEC_ALGORITHMS) {
+              if (this[hash]) {
+                toString = integrityHashToString(
+                  toString,
+                  sep,
+                  opts,
+                  this[hash],
+                );
+              }
+            }
+          } else {
+            for (const hash of Object.keys(this)) {
+              toString = integrityHashToString(toString, sep, opts, this[hash]);
+            }
+          }
+          return toString;
+        }
+        concat(integrity, opts) {
+          const other =
+            typeof integrity === "string"
+              ? integrity
+              : stringify(integrity, opts);
+          return parse(`${this.toString(opts)} ${other}`, opts);
+        }
+        hexDigest() {
+          return parse(this, { single: true }).hexDigest();
+        }
+        merge(integrity, opts) {
+          const other = parse(integrity, opts);
+          for (const algo in other) {
+            if (this[algo]) {
+              if (
+                !this[algo].find((hash) =>
+                  other[algo].find(
+                    (otherhash) => hash.digest === otherhash.digest,
+                  ),
+                )
+              ) {
+                throw new Error("hashes do not match, cannot update integrity");
+              }
+            } else {
+              this[algo] = other[algo];
+            }
+          }
+        }
+        match(integrity, opts) {
+          const other = parse(integrity, opts);
+          if (!other) {
+            return false;
+          }
+          const algo = other.pickAlgorithm(opts, Object.keys(this));
+          return (
+            (!!algo &&
+              this[algo] &&
+              other[algo] &&
+              this[algo].find((hash) =>
+                other[algo].find(
+                  (otherhash) => hash.digest === otherhash.digest,
+                ),
+              )) ||
+            false
+          );
+        }
+        pickAlgorithm(opts, hashes) {
+          const pickAlgorithm = opts?.pickAlgorithm || getPrioritizedHash;
+          const keys = Object.keys(this).filter((k) => {
+            if (hashes?.length) {
+              return hashes.includes(k);
+            }
+            return true;
+          });
+          if (keys.length) {
+            return keys.reduce((acc, algo) => pickAlgorithm(acc, algo) || acc);
+          }
+          return null;
+        }
+      }
+      module.exports.parse = parse;
+      function parse(sri, opts) {
+        if (!sri) {
+          return null;
+        }
+        if (typeof sri === "string") {
+          return _parse(sri, opts);
+        } else if (sri.algorithm && sri.digest) {
+          const fullSri = new Integrity();
+          fullSri[sri.algorithm] = [sri];
+          return _parse(stringify(fullSri, opts), opts);
+        } else {
+          return _parse(stringify(sri, opts), opts);
+        }
+      }
+      function _parse(integrity, opts) {
+        if (opts?.single) {
+          return new Hash(integrity, opts);
+        }
+        const hashes = integrity
+          .trim()
+          .split(/\s+/)
+          .reduce((acc, string) => {
+            const hash = new Hash(string, opts);
+            if (hash.algorithm && hash.digest) {
+              const algo = hash.algorithm;
+              if (!acc[algo]) {
+                acc[algo] = [];
+              }
+              acc[algo].push(hash);
+            }
+            return acc;
+          }, new Integrity());
+        return hashes.isEmpty() ? null : hashes;
+      }
+      module.exports.stringify = stringify;
+      function stringify(obj, opts) {
+        if (obj.algorithm && obj.digest) {
+          return Hash.prototype.toString.call(obj, opts);
+        } else if (typeof obj === "string") {
+          return stringify(parse(obj, opts), opts);
+        } else {
+          return Integrity.prototype.toString.call(obj, opts);
+        }
+      }
+      module.exports.fromHex = fromHex;
+      function fromHex(hexDigest, algorithm, opts) {
+        const optString = getOptString(opts?.options);
+        return parse(
+          `${algorithm}-${Buffer.from(hexDigest, "hex").toString("base64")}${optString}`,
+          opts,
+        );
+      }
+      module.exports.fromData = fromData;
+      function fromData(data, opts) {
+        const algorithms = opts?.algorithms || [...DEFAULT_ALGORITHMS];
+        const optString = getOptString(opts?.options);
+        return algorithms.reduce((acc, algo) => {
+          const digest = crypto.createHash(algo).update(data).digest("base64");
+          const hash = new Hash(`${algo}-${digest}${optString}`, opts);
+          if (hash.algorithm && hash.digest) {
+            const hashAlgo = hash.algorithm;
+            if (!acc[hashAlgo]) {
+              acc[hashAlgo] = [];
+            }
+            acc[hashAlgo].push(hash);
+          }
+          return acc;
+        }, new Integrity());
+      }
+      module.exports.fromStream = fromStream;
+      function fromStream(stream, opts) {
+        const istream = integrityStream(opts);
+        return new Promise((resolve, reject) => {
+          stream.pipe(istream);
+          stream.on("error", reject);
+          istream.on("error", reject);
+          let sri;
+          istream.on("integrity", (s) => {
+            sri = s;
+          });
+          istream.on("end", () => resolve(sri));
+          istream.resume();
+        });
+      }
+      module.exports.checkData = checkData;
+      function checkData(data, sri, opts) {
+        sri = parse(sri, opts);
+        if (!sri || !Object.keys(sri).length) {
+          if (opts?.error) {
+            throw Object.assign(
+              new Error("No valid integrity hashes to check against"),
+              { code: "EINTEGRITY" },
+            );
+          } else {
+            return false;
+          }
+        }
+        const algorithm = sri.pickAlgorithm(opts);
+        const digest = crypto
+          .createHash(algorithm)
+          .update(data)
+          .digest("base64");
+        const newSri = parse({ algorithm, digest });
+        const match = newSri.match(sri, opts);
+        opts = opts || {};
+        if (match || !opts.error) {
+          return match;
+        } else if (typeof opts.size === "number" && data.length !== opts.size) {
+          const err = new Error(
+            `data size mismatch when checking ${sri}.\n  Wanted: ${opts.size}\n  Found: ${data.length}`,
+          );
+          err.code = "EBADSIZE";
+          err.found = data.length;
+          err.expected = opts.size;
+          err.sri = sri;
+          throw err;
+        } else {
+          const err = new Error(
+            `Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes)`,
+          );
+          err.code = "EINTEGRITY";
+          err.found = newSri;
+          err.expected = sri;
+          err.algorithm = algorithm;
+          err.sri = sri;
+          throw err;
+        }
+      }
+      module.exports.checkStream = checkStream;
+      function checkStream(stream, sri, opts) {
+        opts = opts || Object.create(null);
+        opts.integrity = sri;
+        sri = parse(sri, opts);
+        if (!sri || !Object.keys(sri).length) {
+          return Promise.reject(
+            Object.assign(
+              new Error("No valid integrity hashes to check against"),
+              { code: "EINTEGRITY" },
+            ),
+          );
+        }
+        const checker = integrityStream(opts);
+        return new Promise((resolve, reject) => {
+          stream.pipe(checker);
+          stream.on("error", reject);
+          checker.on("error", reject);
+          let verified;
+          checker.on("verified", (s) => {
+            verified = s;
+          });
+          checker.on("end", () => resolve(verified));
+          checker.resume();
+        });
+      }
+      module.exports.integrityStream = integrityStream;
+      function integrityStream(opts = Object.create(null)) {
+        return new IntegrityStream(opts);
+      }
+      module.exports.create = createIntegrity;
+      function createIntegrity(opts) {
+        const algorithms = opts?.algorithms || [...DEFAULT_ALGORITHMS];
+        const optString = getOptString(opts?.options);
+        const hashes = algorithms.map(crypto.createHash);
+        return {
+          update: function (chunk, enc) {
+            hashes.forEach((h) => h.update(chunk, enc));
+            return this;
+          },
+          digest: function () {
+            const integrity = algorithms.reduce((acc, algo) => {
+              const digest = hashes.shift().digest("base64");
+              const hash = new Hash(`${algo}-${digest}${optString}`, opts);
+              if (hash.algorithm && hash.digest) {
+                const hashAlgo = hash.algorithm;
+                if (!acc[hashAlgo]) {
+                  acc[hashAlgo] = [];
+                }
+                acc[hashAlgo].push(hash);
+              }
+              return acc;
+            }, new Integrity());
+            return integrity;
+          },
+        };
+      }
+      const NODE_HASHES = crypto.getHashes();
+      const DEFAULT_PRIORITY = [
+        "md5",
+        "whirlpool",
+        "sha1",
+        "sha224",
+        "sha256",
+        "sha384",
+        "sha512",
+        "sha3",
+        "sha3-256",
+        "sha3-384",
+        "sha3-512",
+        "sha3_256",
+        "sha3_384",
+        "sha3_512",
+      ].filter((algo) => NODE_HASHES.includes(algo));
+      function getPrioritizedHash(algo1, algo2) {
+        return DEFAULT_PRIORITY.indexOf(algo1.toLowerCase()) >=
+          DEFAULT_PRIORITY.indexOf(algo2.toLowerCase())
+          ? algo1
+          : algo2;
+      }
     },
     968: (__unused_webpack_module, exports, __nccwpck_require__) => {
       "use strict";
@@ -2524,32 +2971,6 @@
         } else {
         }
       })();
-    },
-    8043: (module) => {
-      "use strict";
-      module.exports = (string, count = 1, options) => {
-        options = { indent: " ", includeEmptyLines: false, ...options };
-        if (typeof string !== "string") {
-          throw new TypeError(
-            `Expected \`input\` to be a \`string\`, got \`${typeof string}\``,
-          );
-        }
-        if (typeof count !== "number") {
-          throw new TypeError(
-            `Expected \`count\` to be a \`number\`, got \`${typeof count}\``,
-          );
-        }
-        if (typeof options.indent !== "string") {
-          throw new TypeError(
-            `Expected \`options.indent\` to be a \`string\`, got \`${typeof options.indent}\``,
-          );
-        }
-        if (count === 0) {
-          return string;
-        }
-        const regex = options.includeEmptyLines ? /^/gm : /^(?!\s*$)/gm;
-        return string.replace(regex, options.indent.repeat(count));
-      };
     },
     8184: (module, __unused_webpack_exports, __nccwpck_require__) => {
       var balanced = __nccwpck_require__(9417);
@@ -3926,600 +4347,6 @@
           );
         }
       };
-    },
-    1855: (module, __unused_webpack_exports, __nccwpck_require__) => {
-      "use strict";
-      const AggregateError = __nccwpck_require__(1231);
-      module.exports = async (
-        iterable,
-        mapper,
-        { concurrency = Infinity, stopOnError = true } = {},
-      ) =>
-        new Promise((resolve, reject) => {
-          if (typeof mapper !== "function") {
-            throw new TypeError("Mapper function is required");
-          }
-          if (
-            !(
-              (Number.isSafeInteger(concurrency) || concurrency === Infinity) &&
-              concurrency >= 1
-            )
-          ) {
-            throw new TypeError(
-              `Expected \`concurrency\` to be an integer from 1 and up or \`Infinity\`, got \`${concurrency}\` (${typeof concurrency})`,
-            );
-          }
-          const result = [];
-          const errors = [];
-          const iterator = iterable[Symbol.iterator]();
-          let isRejected = false;
-          let isIterableDone = false;
-          let resolvingCount = 0;
-          let currentIndex = 0;
-          const next = () => {
-            if (isRejected) {
-              return;
-            }
-            const nextItem = iterator.next();
-            const index = currentIndex;
-            currentIndex++;
-            if (nextItem.done) {
-              isIterableDone = true;
-              if (resolvingCount === 0) {
-                if (!stopOnError && errors.length !== 0) {
-                  reject(new AggregateError(errors));
-                } else {
-                  resolve(result);
-                }
-              }
-              return;
-            }
-            resolvingCount++;
-            (async () => {
-              try {
-                const element = await nextItem.value;
-                result[index] = await mapper(element, index);
-                resolvingCount--;
-                next();
-              } catch (error) {
-                if (stopOnError) {
-                  isRejected = true;
-                  reject(error);
-                } else {
-                  errors.push(error);
-                  resolvingCount--;
-                  next();
-                }
-              }
-            })();
-          };
-          for (let i = 0; i < concurrency; i++) {
-            next();
-            if (isIterableDone) {
-              break;
-            }
-          }
-        });
-    },
-    4406: (module, __unused_webpack_exports, __nccwpck_require__) => {
-      "use strict";
-      const crypto = __nccwpck_require__(6113);
-      const { Minipass } = __nccwpck_require__(4968);
-      const SPEC_ALGORITHMS = ["sha512", "sha384", "sha256"];
-      const DEFAULT_ALGORITHMS = ["sha512"];
-      const BASE64_REGEX = /^[a-z0-9+/]+(?:=?=?)$/i;
-      const SRI_REGEX = /^([a-z0-9]+)-([^?]+)([?\S*]*)$/;
-      const STRICT_SRI_REGEX =
-        /^([a-z0-9]+)-([A-Za-z0-9+/=]{44,88})(\?[\x21-\x7E]*)?$/;
-      const VCHAR_REGEX = /^[\x21-\x7E]+$/;
-      const getOptString = (options) =>
-        options?.length ? `?${options.join("?")}` : "";
-      class IntegrityStream extends Minipass {
-        #emittedIntegrity;
-        #emittedSize;
-        #emittedVerified;
-        constructor(opts) {
-          super();
-          this.size = 0;
-          this.opts = opts;
-          this.#getOptions();
-          if (opts?.algorithms) {
-            this.algorithms = [...opts.algorithms];
-          } else {
-            this.algorithms = [...DEFAULT_ALGORITHMS];
-          }
-          if (
-            this.algorithm !== null &&
-            !this.algorithms.includes(this.algorithm)
-          ) {
-            this.algorithms.push(this.algorithm);
-          }
-          this.hashes = this.algorithms.map(crypto.createHash);
-        }
-        #getOptions() {
-          this.sri = this.opts?.integrity
-            ? parse(this.opts?.integrity, this.opts)
-            : null;
-          this.expectedSize = this.opts?.size;
-          if (!this.sri) {
-            this.algorithm = null;
-          } else if (this.sri.isHash) {
-            this.goodSri = true;
-            this.algorithm = this.sri.algorithm;
-          } else {
-            this.goodSri = !this.sri.isEmpty();
-            this.algorithm = this.sri.pickAlgorithm(this.opts);
-          }
-          this.digests = this.goodSri ? this.sri[this.algorithm] : null;
-          this.optString = getOptString(this.opts?.options);
-        }
-        on(ev, handler) {
-          if (ev === "size" && this.#emittedSize) {
-            return handler(this.#emittedSize);
-          }
-          if (ev === "integrity" && this.#emittedIntegrity) {
-            return handler(this.#emittedIntegrity);
-          }
-          if (ev === "verified" && this.#emittedVerified) {
-            return handler(this.#emittedVerified);
-          }
-          return super.on(ev, handler);
-        }
-        emit(ev, data) {
-          if (ev === "end") {
-            this.#onEnd();
-          }
-          return super.emit(ev, data);
-        }
-        write(data) {
-          this.size += data.length;
-          this.hashes.forEach((h) => h.update(data));
-          return super.write(data);
-        }
-        #onEnd() {
-          if (!this.goodSri) {
-            this.#getOptions();
-          }
-          const newSri = parse(
-            this.hashes
-              .map(
-                (h, i) =>
-                  `${this.algorithms[i]}-${h.digest("base64")}${this.optString}`,
-              )
-              .join(" "),
-            this.opts,
-          );
-          const match = this.goodSri && newSri.match(this.sri, this.opts);
-          if (
-            typeof this.expectedSize === "number" &&
-            this.size !== this.expectedSize
-          ) {
-            const err = new Error(
-              `stream size mismatch when checking ${this.sri}.\n  Wanted: ${this.expectedSize}\n  Found: ${this.size}`,
-            );
-            err.code = "EBADSIZE";
-            err.found = this.size;
-            err.expected = this.expectedSize;
-            err.sri = this.sri;
-            this.emit("error", err);
-          } else if (this.sri && !match) {
-            const err = new Error(
-              `${this.sri} integrity checksum failed when using ${this.algorithm}: wanted ${this.digests} but got ${newSri}. (${this.size} bytes)`,
-            );
-            err.code = "EINTEGRITY";
-            err.found = newSri;
-            err.expected = this.digests;
-            err.algorithm = this.algorithm;
-            err.sri = this.sri;
-            this.emit("error", err);
-          } else {
-            this.#emittedSize = this.size;
-            this.emit("size", this.size);
-            this.#emittedIntegrity = newSri;
-            this.emit("integrity", newSri);
-            if (match) {
-              this.#emittedVerified = match;
-              this.emit("verified", match);
-            }
-          }
-        }
-      }
-      class Hash {
-        get isHash() {
-          return true;
-        }
-        constructor(hash, opts) {
-          const strict = opts?.strict;
-          this.source = hash.trim();
-          this.digest = "";
-          this.algorithm = "";
-          this.options = [];
-          const match = this.source.match(
-            strict ? STRICT_SRI_REGEX : SRI_REGEX,
-          );
-          if (!match) {
-            return;
-          }
-          if (strict && !SPEC_ALGORITHMS.includes(match[1])) {
-            return;
-          }
-          this.algorithm = match[1];
-          this.digest = match[2];
-          const rawOpts = match[3];
-          if (rawOpts) {
-            this.options = rawOpts.slice(1).split("?");
-          }
-        }
-        hexDigest() {
-          return (
-            this.digest && Buffer.from(this.digest, "base64").toString("hex")
-          );
-        }
-        toJSON() {
-          return this.toString();
-        }
-        match(integrity, opts) {
-          const other = parse(integrity, opts);
-          if (!other) {
-            return false;
-          }
-          if (other.isIntegrity) {
-            const algo = other.pickAlgorithm(opts, [this.algorithm]);
-            if (!algo) {
-              return false;
-            }
-            const foundHash = other[algo].find(
-              (hash) => hash.digest === this.digest,
-            );
-            if (foundHash) {
-              return foundHash;
-            }
-            return false;
-          }
-          return other.digest === this.digest ? other : false;
-        }
-        toString(opts) {
-          if (opts?.strict) {
-            if (
-              !(
-                SPEC_ALGORITHMS.includes(this.algorithm) &&
-                this.digest.match(BASE64_REGEX) &&
-                this.options.every((opt) => opt.match(VCHAR_REGEX))
-              )
-            ) {
-              return "";
-            }
-          }
-          return `${this.algorithm}-${this.digest}${getOptString(this.options)}`;
-        }
-      }
-      function integrityHashToString(toString, sep, opts, hashes) {
-        const toStringIsNotEmpty = toString !== "";
-        let shouldAddFirstSep = false;
-        let complement = "";
-        const lastIndex = hashes.length - 1;
-        for (let i = 0; i < lastIndex; i++) {
-          const hashString = Hash.prototype.toString.call(hashes[i], opts);
-          if (hashString) {
-            shouldAddFirstSep = true;
-            complement += hashString;
-            complement += sep;
-          }
-        }
-        const finalHashString = Hash.prototype.toString.call(
-          hashes[lastIndex],
-          opts,
-        );
-        if (finalHashString) {
-          shouldAddFirstSep = true;
-          complement += finalHashString;
-        }
-        if (toStringIsNotEmpty && shouldAddFirstSep) {
-          return toString + sep + complement;
-        }
-        return toString + complement;
-      }
-      class Integrity {
-        get isIntegrity() {
-          return true;
-        }
-        toJSON() {
-          return this.toString();
-        }
-        isEmpty() {
-          return Object.keys(this).length === 0;
-        }
-        toString(opts) {
-          let sep = opts?.sep || " ";
-          let toString = "";
-          if (opts?.strict) {
-            sep = sep.replace(/\S+/g, " ");
-            for (const hash of SPEC_ALGORITHMS) {
-              if (this[hash]) {
-                toString = integrityHashToString(
-                  toString,
-                  sep,
-                  opts,
-                  this[hash],
-                );
-              }
-            }
-          } else {
-            for (const hash of Object.keys(this)) {
-              toString = integrityHashToString(toString, sep, opts, this[hash]);
-            }
-          }
-          return toString;
-        }
-        concat(integrity, opts) {
-          const other =
-            typeof integrity === "string"
-              ? integrity
-              : stringify(integrity, opts);
-          return parse(`${this.toString(opts)} ${other}`, opts);
-        }
-        hexDigest() {
-          return parse(this, { single: true }).hexDigest();
-        }
-        merge(integrity, opts) {
-          const other = parse(integrity, opts);
-          for (const algo in other) {
-            if (this[algo]) {
-              if (
-                !this[algo].find((hash) =>
-                  other[algo].find(
-                    (otherhash) => hash.digest === otherhash.digest,
-                  ),
-                )
-              ) {
-                throw new Error("hashes do not match, cannot update integrity");
-              }
-            } else {
-              this[algo] = other[algo];
-            }
-          }
-        }
-        match(integrity, opts) {
-          const other = parse(integrity, opts);
-          if (!other) {
-            return false;
-          }
-          const algo = other.pickAlgorithm(opts, Object.keys(this));
-          return (
-            (!!algo &&
-              this[algo] &&
-              other[algo] &&
-              this[algo].find((hash) =>
-                other[algo].find(
-                  (otherhash) => hash.digest === otherhash.digest,
-                ),
-              )) ||
-            false
-          );
-        }
-        pickAlgorithm(opts, hashes) {
-          const pickAlgorithm = opts?.pickAlgorithm || getPrioritizedHash;
-          const keys = Object.keys(this).filter((k) => {
-            if (hashes?.length) {
-              return hashes.includes(k);
-            }
-            return true;
-          });
-          if (keys.length) {
-            return keys.reduce((acc, algo) => pickAlgorithm(acc, algo) || acc);
-          }
-          return null;
-        }
-      }
-      module.exports.parse = parse;
-      function parse(sri, opts) {
-        if (!sri) {
-          return null;
-        }
-        if (typeof sri === "string") {
-          return _parse(sri, opts);
-        } else if (sri.algorithm && sri.digest) {
-          const fullSri = new Integrity();
-          fullSri[sri.algorithm] = [sri];
-          return _parse(stringify(fullSri, opts), opts);
-        } else {
-          return _parse(stringify(sri, opts), opts);
-        }
-      }
-      function _parse(integrity, opts) {
-        if (opts?.single) {
-          return new Hash(integrity, opts);
-        }
-        const hashes = integrity
-          .trim()
-          .split(/\s+/)
-          .reduce((acc, string) => {
-            const hash = new Hash(string, opts);
-            if (hash.algorithm && hash.digest) {
-              const algo = hash.algorithm;
-              if (!acc[algo]) {
-                acc[algo] = [];
-              }
-              acc[algo].push(hash);
-            }
-            return acc;
-          }, new Integrity());
-        return hashes.isEmpty() ? null : hashes;
-      }
-      module.exports.stringify = stringify;
-      function stringify(obj, opts) {
-        if (obj.algorithm && obj.digest) {
-          return Hash.prototype.toString.call(obj, opts);
-        } else if (typeof obj === "string") {
-          return stringify(parse(obj, opts), opts);
-        } else {
-          return Integrity.prototype.toString.call(obj, opts);
-        }
-      }
-      module.exports.fromHex = fromHex;
-      function fromHex(hexDigest, algorithm, opts) {
-        const optString = getOptString(opts?.options);
-        return parse(
-          `${algorithm}-${Buffer.from(hexDigest, "hex").toString("base64")}${optString}`,
-          opts,
-        );
-      }
-      module.exports.fromData = fromData;
-      function fromData(data, opts) {
-        const algorithms = opts?.algorithms || [...DEFAULT_ALGORITHMS];
-        const optString = getOptString(opts?.options);
-        return algorithms.reduce((acc, algo) => {
-          const digest = crypto.createHash(algo).update(data).digest("base64");
-          const hash = new Hash(`${algo}-${digest}${optString}`, opts);
-          if (hash.algorithm && hash.digest) {
-            const hashAlgo = hash.algorithm;
-            if (!acc[hashAlgo]) {
-              acc[hashAlgo] = [];
-            }
-            acc[hashAlgo].push(hash);
-          }
-          return acc;
-        }, new Integrity());
-      }
-      module.exports.fromStream = fromStream;
-      function fromStream(stream, opts) {
-        const istream = integrityStream(opts);
-        return new Promise((resolve, reject) => {
-          stream.pipe(istream);
-          stream.on("error", reject);
-          istream.on("error", reject);
-          let sri;
-          istream.on("integrity", (s) => {
-            sri = s;
-          });
-          istream.on("end", () => resolve(sri));
-          istream.resume();
-        });
-      }
-      module.exports.checkData = checkData;
-      function checkData(data, sri, opts) {
-        sri = parse(sri, opts);
-        if (!sri || !Object.keys(sri).length) {
-          if (opts?.error) {
-            throw Object.assign(
-              new Error("No valid integrity hashes to check against"),
-              { code: "EINTEGRITY" },
-            );
-          } else {
-            return false;
-          }
-        }
-        const algorithm = sri.pickAlgorithm(opts);
-        const digest = crypto
-          .createHash(algorithm)
-          .update(data)
-          .digest("base64");
-        const newSri = parse({ algorithm, digest });
-        const match = newSri.match(sri, opts);
-        opts = opts || {};
-        if (match || !opts.error) {
-          return match;
-        } else if (typeof opts.size === "number" && data.length !== opts.size) {
-          const err = new Error(
-            `data size mismatch when checking ${sri}.\n  Wanted: ${opts.size}\n  Found: ${data.length}`,
-          );
-          err.code = "EBADSIZE";
-          err.found = data.length;
-          err.expected = opts.size;
-          err.sri = sri;
-          throw err;
-        } else {
-          const err = new Error(
-            `Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes)`,
-          );
-          err.code = "EINTEGRITY";
-          err.found = newSri;
-          err.expected = sri;
-          err.algorithm = algorithm;
-          err.sri = sri;
-          throw err;
-        }
-      }
-      module.exports.checkStream = checkStream;
-      function checkStream(stream, sri, opts) {
-        opts = opts || Object.create(null);
-        opts.integrity = sri;
-        sri = parse(sri, opts);
-        if (!sri || !Object.keys(sri).length) {
-          return Promise.reject(
-            Object.assign(
-              new Error("No valid integrity hashes to check against"),
-              { code: "EINTEGRITY" },
-            ),
-          );
-        }
-        const checker = integrityStream(opts);
-        return new Promise((resolve, reject) => {
-          stream.pipe(checker);
-          stream.on("error", reject);
-          checker.on("error", reject);
-          let verified;
-          checker.on("verified", (s) => {
-            verified = s;
-          });
-          checker.on("end", () => resolve(verified));
-          checker.resume();
-        });
-      }
-      module.exports.integrityStream = integrityStream;
-      function integrityStream(opts = Object.create(null)) {
-        return new IntegrityStream(opts);
-      }
-      module.exports.create = createIntegrity;
-      function createIntegrity(opts) {
-        const algorithms = opts?.algorithms || [...DEFAULT_ALGORITHMS];
-        const optString = getOptString(opts?.options);
-        const hashes = algorithms.map(crypto.createHash);
-        return {
-          update: function (chunk, enc) {
-            hashes.forEach((h) => h.update(chunk, enc));
-            return this;
-          },
-          digest: function () {
-            const integrity = algorithms.reduce((acc, algo) => {
-              const digest = hashes.shift().digest("base64");
-              const hash = new Hash(`${algo}-${digest}${optString}`, opts);
-              if (hash.algorithm && hash.digest) {
-                const hashAlgo = hash.algorithm;
-                if (!acc[hashAlgo]) {
-                  acc[hashAlgo] = [];
-                }
-                acc[hashAlgo].push(hash);
-              }
-              return acc;
-            }, new Integrity());
-            return integrity;
-          },
-        };
-      }
-      const NODE_HASHES = crypto.getHashes();
-      const DEFAULT_PRIORITY = [
-        "md5",
-        "whirlpool",
-        "sha1",
-        "sha224",
-        "sha256",
-        "sha384",
-        "sha512",
-        "sha3",
-        "sha3-256",
-        "sha3-384",
-        "sha3-512",
-        "sha3_256",
-        "sha3_384",
-        "sha3_512",
-      ].filter((algo) => NODE_HASHES.includes(algo));
-      function getPrioritizedHash(algo1, algo2) {
-        return DEFAULT_PRIORITY.indexOf(algo1.toLowerCase()) >=
-          DEFAULT_PRIORITY.indexOf(algo2.toLowerCase())
-          ? algo1
-          : algo2;
-      }
     },
     1747: (module, __unused_webpack_exports, __nccwpck_require__) => {
       var path = __nccwpck_require__(1017);
@@ -10661,8 +10488,72 @@
     }
     return module.exports;
   }
+  __nccwpck_require__.m = __webpack_modules__;
+  (() => {
+    __nccwpck_require__.d = (exports, definition) => {
+      for (var key in definition) {
+        if (
+          __nccwpck_require__.o(definition, key) &&
+          !__nccwpck_require__.o(exports, key)
+        ) {
+          Object.defineProperty(exports, key, {
+            enumerable: true,
+            get: definition[key],
+          });
+        }
+      }
+    };
+  })();
+  (() => {
+    __nccwpck_require__.f = {};
+    __nccwpck_require__.e = (chunkId) =>
+      Promise.all(
+        Object.keys(__nccwpck_require__.f).reduce((promises, key) => {
+          __nccwpck_require__.f[key](chunkId, promises);
+          return promises;
+        }, []),
+      );
+  })();
+  (() => {
+    __nccwpck_require__.u = (chunkId) => "" + chunkId + ".index.js";
+  })();
+  (() => {
+    __nccwpck_require__.o = (obj, prop) =>
+      Object.prototype.hasOwnProperty.call(obj, prop);
+  })();
+  (() => {
+    __nccwpck_require__.r = (exports) => {
+      if (typeof Symbol !== "undefined" && Symbol.toStringTag) {
+        Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+      }
+      Object.defineProperty(exports, "__esModule", { value: true });
+    };
+  })();
   if (typeof __nccwpck_require__ !== "undefined")
     __nccwpck_require__.ab = __dirname + "/";
+  (() => {
+    var installedChunks = { 179: 1 };
+    var installChunk = (chunk) => {
+      var moreModules = chunk.modules,
+        chunkIds = chunk.ids,
+        runtime = chunk.runtime;
+      for (var moduleId in moreModules) {
+        if (__nccwpck_require__.o(moreModules, moduleId)) {
+          __nccwpck_require__.m[moduleId] = moreModules[moduleId];
+        }
+      }
+      if (runtime) runtime(__nccwpck_require__);
+      for (var i = 0; i < chunkIds.length; i++)
+        installedChunks[chunkIds[i]] = 1;
+    };
+    __nccwpck_require__.f.require = (chunkId, promises) => {
+      if (!installedChunks[chunkId]) {
+        if (true) {
+          installChunk(require("./" + __nccwpck_require__.u(chunkId)));
+        } else installedChunks[chunkId] = 1;
+      }
+    };
+  })();
   var __webpack_exports__ = __nccwpck_require__(5490);
   module.exports = __webpack_exports__;
 })();
