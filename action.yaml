@@ -23,6 +23,10 @@ inputs:
   dist-tag:
     description: "Dist Tag"
     required: false
+  use-repo-info:
+    description: "Add repository info to publishing manifest"
+    required: false
+    default: 'true'
 runs:
   using: "node20"
   main: "dist/index.js"
