@@ -1,6 +1,6 @@
-import type { PackageJson } from "@npm/types";
+import type { PackageJSON } from "@npm/types";
 
-export type Manifest = PackageJson;
+export type Manifest = PackageJSON;
 export const NPM_COM_REGISTRY = "https://registry.npmjs.org";
 
 export function buildMetaUrl(opts: { name: string; version?: string; registry?: string }) {
@@ -20,7 +20,6 @@ export function cleanManifest(manifest: Manifest, extraReserves: string[] = []):
   return Object.keys(manifest)
     .filter((key) => reserves.has(key))
     .reduce((acc, key) => {
-      // @ts-expect-error
       acc[key] = manifest[key];
       return acc;
     }, {} as Manifest);

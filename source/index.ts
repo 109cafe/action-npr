@@ -39,7 +39,7 @@ async function run() {
   const publishConfig: PublishOptions = {
     ..._publishConfig,
     defaultTag: tag,
-    registry: inputs.registry || _publishConfig?.registry || NPM_COM_REGISTRY,
+    registry: inputs.registry || (_publishConfig?.registry as string) || NPM_COM_REGISTRY,
     npmVersion: "action-npr/v1 (https://github.com/109cafe/action-npr)",
     provenance: inputs.provenance,
     forceAuth: { token },

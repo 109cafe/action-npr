@@ -62,7 +62,7 @@
             followSymbolicLinks = options.followSymbolicLinks;
           }
           const globber = yield create(patterns, { followSymbolicLinks });
-          return internal_hash_files_1.hashFiles(
+          return (0, internal_hash_files_1.hashFiles)(
             globber,
             currentWorkspace,
             verbose,
@@ -78,12 +78,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -108,7 +117,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -122,6 +134,7 @@
           implicitDescendants: true,
           matchDirectories: true,
           omitBrokenSymbolicLinks: true,
+          excludeHiddenFiles: false,
         };
         if (copy) {
           if (typeof copy.followSymbolicLinks === "boolean") {
@@ -142,6 +155,10 @@
               `omitBrokenSymbolicLinks '${result.omitBrokenSymbolicLinks}'`,
             );
           }
+          if (typeof copy.excludeHiddenFiles === "boolean") {
+            result.excludeHiddenFiles = copy.excludeHiddenFiles;
+            core.debug(`excludeHiddenFiles '${result.excludeHiddenFiles}'`);
+          }
         }
         return result;
       }
@@ -154,12 +171,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -184,7 +210,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -336,23 +365,25 @@
           return this.searchPaths.slice();
         }
         glob() {
-          var e_1, _a;
+          var _a, e_1, _b, _c;
           return __awaiter(this, void 0, void 0, function* () {
             const result = [];
             try {
               for (
-                var _b = __asyncValues(this.globGenerator()), _c;
-                (_c = yield _b.next()), !_c.done;
-
+                var _d = true, _e = __asyncValues(this.globGenerator()), _f;
+                (_f = yield _e.next()), (_a = _f.done), !_a;
+                _d = true
               ) {
-                const itemPath = _c.value;
+                _c = _f.value;
+                _d = false;
+                const itemPath = _c;
                 result.push(itemPath);
               }
             } catch (e_1_1) {
               e_1 = { error: e_1_1 };
             } finally {
               try {
-                if (_c && !_c.done && (_a = _b.return)) yield _a.call(_b);
+                if (!_d && !_a && (_b = _e.return)) yield _b.call(_e);
               } finally {
                 if (e_1) throw e_1.error;
               }
@@ -408,6 +439,12 @@
                 DefaultGlobber.stat(item, options, traversalChain),
               );
               if (!stats) {
+                continue;
+              }
+              if (
+                options.excludeHiddenFiles &&
+                path.basename(item.path).match(/^\./)
+              ) {
                 continue;
               }
               if (stats.isDirectory()) {
@@ -504,12 +541,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -534,7 +580,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -619,25 +668,27 @@
       const util = __importStar(__nccwpck_require__(837));
       const path = __importStar(__nccwpck_require__(17));
       function hashFiles(globber, currentWorkspace, verbose = false) {
-        var e_1, _a;
-        var _b;
+        var _a, e_1, _b, _c;
+        var _d;
         return __awaiter(this, void 0, void 0, function* () {
           const writeDelegate = verbose ? core.info : core.debug;
           let hasMatch = false;
           const githubWorkspace = currentWorkspace
             ? currentWorkspace
-            : (_b = process.env["GITHUB_WORKSPACE"]) !== null && _b !== void 0
-              ? _b
+            : (_d = process.env["GITHUB_WORKSPACE"]) !== null && _d !== void 0
+              ? _d
               : process.cwd();
           const result = crypto.createHash("sha256");
           let count = 0;
           try {
             for (
-              var _c = __asyncValues(globber.globGenerator()), _d;
-              (_d = yield _c.next()), !_d.done;
-
+              var _e = true, _f = __asyncValues(globber.globGenerator()), _g;
+              (_g = yield _f.next()), (_a = _g.done), !_a;
+              _e = true
             ) {
-              const file = _d.value;
+              _c = _g.value;
+              _e = false;
+              const file = _c;
               writeDelegate(file);
               if (!file.startsWith(`${githubWorkspace}${path.sep}`)) {
                 writeDelegate(
@@ -662,7 +713,7 @@
             e_1 = { error: e_1_1 };
           } finally {
             try {
-              if (_d && !_d.done && (_a = _c.return)) yield _a.call(_c);
+              if (!_e && !_a && (_b = _f.return)) yield _b.call(_f);
             } finally {
               if (e_1) throw e_1.error;
             }
@@ -689,7 +740,7 @@
         MatchKind[(MatchKind["Directory"] = 1)] = "Directory";
         MatchKind[(MatchKind["File"] = 2)] = "File";
         MatchKind[(MatchKind["All"] = 3)] = "All";
-      })((MatchKind = exports.MatchKind || (exports.MatchKind = {})));
+      })(MatchKind || (exports.MatchKind = MatchKind = {}));
     },
     849: function (__unused_webpack_module, exports, __nccwpck_require__) {
       "use strict";
@@ -698,12 +749,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -728,7 +788,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -762,11 +825,11 @@
       }
       exports.dirname = dirname;
       function ensureAbsoluteRoot(root, itemPath) {
-        assert_1.default(
+        (0, assert_1.default)(
           root,
           `ensureAbsoluteRoot parameter 'root' must not be empty`,
         );
-        assert_1.default(
+        (0, assert_1.default)(
           itemPath,
           `ensureAbsoluteRoot parameter 'itemPath' must not be empty`,
         );
@@ -776,7 +839,7 @@
         if (IS_WINDOWS) {
           if (itemPath.match(/^[A-Z]:[^\\/]|^[A-Z]:$/i)) {
             let cwd = process.cwd();
-            assert_1.default(
+            (0, assert_1.default)(
               cwd.match(/^[A-Z]:\\/i),
               `Expected current directory to start with an absolute drive root. Actual '${cwd}'`,
             );
@@ -794,14 +857,14 @@
             }
           } else if (normalizeSeparators(itemPath).match(/^\\$|^\\[^\\]/)) {
             const cwd = process.cwd();
-            assert_1.default(
+            (0, assert_1.default)(
               cwd.match(/^[A-Z]:\\/i),
               `Expected current directory to start with an absolute drive root. Actual '${cwd}'`,
             );
             return `${cwd[0]}:\\${itemPath.substr(1)}`;
           }
         }
-        assert_1.default(
+        (0, assert_1.default)(
           hasAbsoluteRoot(root),
           `ensureAbsoluteRoot parameter 'root' must have an absolute root`,
         );
@@ -813,7 +876,7 @@
       }
       exports.ensureAbsoluteRoot = ensureAbsoluteRoot;
       function hasAbsoluteRoot(itemPath) {
-        assert_1.default(
+        (0, assert_1.default)(
           itemPath,
           `hasAbsoluteRoot parameter 'itemPath' must not be empty`,
         );
@@ -825,7 +888,7 @@
       }
       exports.hasAbsoluteRoot = hasAbsoluteRoot;
       function hasRoot(itemPath) {
-        assert_1.default(
+        (0, assert_1.default)(
           itemPath,
           `isRooted parameter 'itemPath' must not be empty`,
         );
@@ -871,12 +934,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -901,7 +973,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -921,7 +996,7 @@
         constructor(itemPath) {
           this.segments = [];
           if (typeof itemPath === "string") {
-            assert_1.default(
+            (0, assert_1.default)(
               itemPath,
               `Parameter 'itemPath' must not be empty`,
             );
@@ -940,26 +1015,26 @@
               this.segments.unshift(remaining);
             }
           } else {
-            assert_1.default(
+            (0, assert_1.default)(
               itemPath.length > 0,
               `Parameter 'itemPath' must not be an empty array`,
             );
             for (let i = 0; i < itemPath.length; i++) {
               let segment = itemPath[i];
-              assert_1.default(
+              (0, assert_1.default)(
                 segment,
                 `Parameter 'itemPath' must not contain any empty segments`,
               );
               segment = pathHelper.normalizeSeparators(itemPath[i]);
               if (i === 0 && pathHelper.hasRoot(segment)) {
                 segment = pathHelper.safeTrimTrailingSeparator(segment);
-                assert_1.default(
+                (0, assert_1.default)(
                   segment === pathHelper.dirname(segment),
                   `Parameter 'itemPath' root segment contains information for multiple segments`,
                 );
                 this.segments.push(segment);
               } else {
-                assert_1.default(
+                (0, assert_1.default)(
                   !segment.includes(path.sep),
                   `Parameter 'itemPath' contains unexpected path separators`,
                 );
@@ -993,12 +1068,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -1023,7 +1107,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -1093,12 +1180,21 @@
         (Object.create
           ? function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
-              Object.defineProperty(o, k2, {
-                enumerable: true,
-                get: function () {
-                  return m[k];
-                },
-              });
+              var desc = Object.getOwnPropertyDescriptor(m, k);
+              if (
+                !desc ||
+                ("get" in desc
+                  ? !m.__esModule
+                  : desc.writable || desc.configurable)
+              ) {
+                desc = {
+                  enumerable: true,
+                  get: function () {
+                    return m[k];
+                  },
+                };
+              }
+              Object.defineProperty(o, k2, desc);
             }
           : function (o, m, k, k2) {
               if (k2 === undefined) k2 = k;
@@ -1123,7 +1219,10 @@
           var result = {};
           if (mod != null)
             for (var k in mod)
-              if (k !== "default" && Object.hasOwnProperty.call(mod, k))
+              if (
+                k !== "default" &&
+                Object.prototype.hasOwnProperty.call(mod, k)
+              )
                 __createBinding(result, mod, k);
           __setModuleDefault(result, mod);
           return result;
@@ -1156,12 +1255,12 @@
             pattern = patternOrNegate.trim();
           } else {
             segments = segments || [];
-            assert_1.default(
+            (0, assert_1.default)(
               segments.length,
               `Parameter 'segments' must not empty`,
             );
             const root = Pattern.getLiteral(segments[0]);
-            assert_1.default(
+            (0, assert_1.default)(
               root && pathHelper.hasAbsoluteRoot(root),
               `Parameter 'segments' first element must be a root path`,
             );
@@ -1238,17 +1337,17 @@
             .replace(/\*/g, "[*]");
         }
         static fixupPattern(pattern, homedir) {
-          assert_1.default(pattern, "pattern cannot be empty");
+          (0, assert_1.default)(pattern, "pattern cannot be empty");
           const literalSegments = new internal_path_1.Path(
             pattern,
           ).segments.map((x) => Pattern.getLiteral(x));
-          assert_1.default(
+          (0, assert_1.default)(
             literalSegments.every(
               (x, i) => (x !== "." || i === 0) && x !== "..",
             ),
             `Invalid pattern '${pattern}'. Relative pathing '.' and '..' is not allowed.`,
           );
-          assert_1.default(
+          (0, assert_1.default)(
             !pathHelper.hasRoot(pattern) || literalSegments[0],
             `Invalid pattern '${pattern}'. Root segment must not contain globs.`,
           );
@@ -1257,8 +1356,11 @@
             pattern = Pattern.globEscape(process.cwd()) + pattern.substr(1);
           } else if (pattern === "~" || pattern.startsWith(`~${path.sep}`)) {
             homedir = homedir || os.homedir();
-            assert_1.default(homedir, "Unable to determine HOME directory");
-            assert_1.default(
+            (0, assert_1.default)(
+              homedir,
+              "Unable to determine HOME directory",
+            );
+            (0, assert_1.default)(
               pathHelper.hasAbsoluteRoot(homedir),
               `Expected HOME directory to be a rooted path. Actual '${homedir}'`,
             );
